@@ -1,0 +1,5 @@
+{
+  "ProxyModule#Gateway": "0xfF86402F070441233347ca511305EDDaE916B074",
+  "ProxyModule#TransparentUpgradeableProxy": "0x1c5870DcA9b72c0FA1D249a9F6De226f0B1F84Bc",
+  "ProxyModule#ProxyAdmin": "0xABA31edBBb00aF443d38B30D931326e50b3ECe01"
+}

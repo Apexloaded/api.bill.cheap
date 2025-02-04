@@ -1,7 +1,25 @@
 {
-  "name": "hardhat-project",
+  "name": "billcheap-contract",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "compile": "npx hardhat compile",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "node": "npx hardhat node",
+    "ig:deploy": "npx hardhat ignition deploy ignition/modules/Gateway.ts --network testnet",
+    "deploy": "npx hardhat run scripts/deploy.ts --network testnet",
+    "upgrade": "npx hardhat run scripts/upgrade.ts --network testnet",
+    "verify:billpoint": "npx hardhat verify --contract 'contracts/BillPoint.sol:BillPoint' 0xa2e97C9EdEF613741d46368a7c5e7CEFDfFb16D5 --network testnet",
+    "verify:gateway": "npx hardhat verify --contract 'contracts/Gateway.sol:Gateway' 0x0E170c6fDba74647BEd0947a579FB40A0c983A51 --network testnet"
+  },
+  "author": "",
+  "license": "ISC",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox-viem": "^3.0.0",
+    "@openzeppelin/contracts": "^5.2.0",
+    "@openzeppelin/contracts-upgradeable": "^5.2.0",
+    "@openzeppelin/hardhat-upgrades": "^3.9.0",
+    "dotenv": "^16.4.7",
     "hardhat": "^2.22.18"
   }
 }
