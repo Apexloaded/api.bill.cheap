@@ -11,6 +11,7 @@ import { TelegrafModule } from 'nestjs-telegraf';
 import { session } from 'telegraf';
 import { BotModule } from './bot/bot.module';
 import { WebhookModule } from './webhook/webhook.module';
+import { ContractModule } from './contract/contract.module';
 
 
 @Module({
@@ -38,6 +39,7 @@ import { WebhookModule } from './webhook/webhook.module';
     AgentKitModule,
     BotModule,
     WebhookModule,
+    ContractModule,
   ],
   controllers: [AppController],
   providers: [AppService],
