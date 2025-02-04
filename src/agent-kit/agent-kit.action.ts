@@ -7,7 +7,7 @@ import {
 } from '@coinbase/agentkit';
 import { bigint, z } from 'zod';
 import { GatewayService } from 'src/contract/gateway/gateway.service';
-import { to0xString } from 'src/libs/helper';
+import { to0xString } from 'src/utils/helpers';
 
 @Injectable()
 export class AgentKitAction {

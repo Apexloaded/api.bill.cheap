@@ -108,8 +108,11 @@ export class BotReplies {
     ]);
   }
 
-  async generateWelcomeMessage(name: string): Promise<string> {
-    const refLink = this.appUrl;
+  async generateWelcomeMessage(
+    name: string,
+    referralCode: string,
+  ): Promise<string> {
+    const refLink = `${this.appUrl}?start=${referralCode}`;
     const text =
       `*Hi, ${name ?? 'there'}! 🎉Welcome to Billcheap 📱 AI agent!*\n\n` +
       `You can seamlessly automate and start paying your bills with crypto *USDT*, *USDC* and *ETH*, using this bot.\n\n` +

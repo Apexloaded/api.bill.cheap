@@ -17,6 +17,7 @@ import {
 } from 'telegraf/typings/core/types/typegram';
 import { ConfigService } from '@nestjs/config';
 import { AgentKitService } from 'src/agent-kit/agent-kit.service';
+import { BotService } from './bot.service';
 
 interface SessionData {
   step?: string;
@@ -40,15 +41,17 @@ export class BotUpdate {
     private readonly botReplies: BotReplies,
     private readonly config: ConfigService,
     private readonly agentKit: AgentKitService,
+    private readonly botService: BotService,
   ) {}
 
   @Start()
   async start(@Ctx() ctx: Context) {
     try {
-      console.log(ctx);
+      const user = await this.botService.handleAuthentication(ctx);
       const keyboard = this.botReplies.welcomeKeyboard;
       const text = await this.botReplies.generateWelcomeMessage(
         ctx.from.first_name,
+        user.referralCode,
       );
       const imageUrl = this.config.get('tg.banner');
       await ctx.replyWithPhoto(
@@ -113,8 +116,10 @@ export class BotUpdate {
   @Action('back_to_main')
   async backToMainMenu(@Ctx() ctx: Context) {
     try {
+      const user = await this.botService.handleAuthentication(ctx);
       const text = await this.botReplies.generateWelcomeMessage(
         ctx.from.first_name,
+        user.referralCode,
       );
       await ctx.editMessageCaption(text, {
         reply_markup: this.botReplies.welcomeKeyboard.reply_markup,
@@ -404,11 +409,11 @@ export class BotUpdate {
 
           default:
             console.log(text);
-            // const res = await this.agentKit.prompt(text);
-            // await ctx.reply(
-            //   res ??
-            //     "I didn't understand that. Please use the menu options or type /start to begin.",
-            // );
+          // const res = await this.agentKit.prompt(text);
+          // await ctx.reply(
+          //   res ??
+          //     "I didn't understand that. Please use the menu options or type /start to begin.",
+          // );
         }
       }
     } catch (error) {

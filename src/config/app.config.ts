@@ -5,4 +5,7 @@ export default registerAs('app', () => ({
   id: process.env.APP_ID,
   hostname: process.env.HOSTNAME,
   rpc: process.env.RPC_NODE,
+  db: process.env.DB_URI,
+  encryptionKey: process.env.ENCRYPTION_KEY,
+  secretKey: process.env.SECRET_KEY,
 }));
