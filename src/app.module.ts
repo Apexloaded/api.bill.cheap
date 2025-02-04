@@ -12,15 +12,32 @@ import { WebhookModule } from './webhook/webhook.module';
 import { ContractModule } from './contract/contract.module';
 import { UserModule } from './user/user.module';
 import { WalletModule } from './wallet/wallet.module';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 import appConfig from './config/app.config';
 import cdpConfig from './config/cdp.config';
 import openaiConfig from './config/openai.config';
 import tgConfig from './config/tg.config';
 
+import { APP_GUARD } from '@nestjs/core';
+import { TelegramThrottlerGuard } from './guards/telegram.throttler.guard';
+import { RolesGuard } from './guards/role.guard';
+
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot([
+      {
+        name: 'short',
+        ttl: 1000,
+        limit: 3, // Not more than 3 calls per second
+      },
+      {
+        name: 'medium',
+        ttl: 10000,
+        limit: 20, // Not more than 20 calls per 10 seconds
+      },
+    ]),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
@@ -56,6 +73,16 @@ import tgConfig from './config/tg.config';
     WalletModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: TelegramThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
+  ],
 })
 export class AppModule {}
