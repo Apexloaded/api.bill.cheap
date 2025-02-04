@@ -24,11 +24,12 @@ export class WalletService {
     const user = await this.userService.findOne({ _id: id }, ['+salt']);
     if (user) {
       const salt = await decodeString(user.salt, true, this.encryptionKey);
-      return await this.extractWalletAddress({
+      const response = await this.extractWalletAddress({
         billId: user.billId,
         userSalt: salt,
         referralCode: user.referralCode,
       });
+      return { ...response, user };
     }
   }
   async extractWalletAddress(data: ExtractWalletDto) {

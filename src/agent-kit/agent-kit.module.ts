@@ -5,9 +5,10 @@ import { AgentKitAction } from './agent-kit.action';
 import { ContractModule } from 'src/contract/contract.module';
 import { WalletModule } from '@/wallet/wallet.module';
 import { UserModule } from '@/user/user.module';
+import { ReloadlyModule } from '@/reloadly/reloadly.module';
 
 @Module({
-  imports: [ContractModule, WalletModule],
+  imports: [ContractModule, WalletModule, ReloadlyModule],
   controllers: [AgentKitController],
   providers: [AgentKitService, AgentKitAction],
   exports: [AgentKitService, AgentKitAction],

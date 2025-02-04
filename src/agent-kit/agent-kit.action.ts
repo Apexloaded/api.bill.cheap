@@ -1,36 +1,50 @@
 import { Injectable } from '@nestjs/common';
-import {
-  customActionProvider,
-  EvmWalletProvider,
-} from '@coinbase/agentkit';
+import { customActionProvider, EvmWalletProvider } from '@coinbase/agentkit';
 import { z } from 'zod';
 import { GatewayService } from 'src/contract/gateway/gateway.service';
 import { to0xString } from 'src/utils/helpers';
+import { ReloadlyService } from '@/reloadly/reloadly.service';
+import { Hex } from 'viem';
+import { PayAirtimeBill } from './interfaces/airtime-bill.interface';
+import { processTopupModifierV2 } from './modifiers/process-topup.modifier';
+import { ProcessTopupSchema } from './schemas/process-bill.schema';
 
 @Injectable()
 export class AgentKitAction {
-  constructor(private gateway: GatewayService) {}
+  constructor(
+    private gateway: GatewayService,
+    private reloadly: ReloadlyService,
+  ) {}
+  processTopup(payload: PayAirtimeBill) {
+    const { id, walletAddress } = payload;
 
-  get payBills() {
     return customActionProvider<EvmWalletProvider>({
-      name: 'process_bill',
-      description: 'Process bill payment onchain',
-      schema: z.object({
-        amount: z.string().describe('The amount to pay'),
-        phoneNumber: z.string().describe('The phone number of the recipient'),
-        provider: z.string().describe('The service providers name'),
-      }),
-      invoke: async (walletProvider, args: any) => {
-        const { amount, phoneNumber, provider, token } = args;
-        const value = await this.gateway.processBill(walletProvider, {
-          amount: BigInt(amount),
-          externalTxId: to0xString(''),
-          billId: to0xString(''),
-          providerId: to0xString(''),
-          tokenAddress: to0xString(token),
-          txType: 1,
-          billType: 1,
-        });
+      name: 'global_topup',
+      description: processTopupModifierV2,
+      schema: ProcessTopupSchema,
+      invoke: async (
+        walletProvider,
+        args: z.infer<typeof ProcessTopupSchema>,
+      ) => {
+        const {
+          amount,
+          billType,
+          tokenAddress,
+          phoneNumber,
+          provider,
+          callingCode,
+          isLocal,
+          isoCode,
+        } = args;
+        // const value = await this.gateway.processBill(walletProvider, {
+        //   amount: BigInt(amount),
+        //   externalTxId: to0xString(''),
+        //   billId: to0xString(''),
+        //   providerId: to0xString(''),
+        //   tokenAddress: to0xString(tokenAddress),
+        //   txType: 1,
+        //   billType: 1,
+        // });
         return `This interaction should pay bills`;
       },
     });

@@ -13,6 +13,7 @@ import { ContractModule } from './contract/contract.module';
 import { UserModule } from './user/user.module';
 import { WalletModule } from './wallet/wallet.module';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { HttpModule } from '@nestjs/axios';
 
 import appConfig from './config/app.config';
 import cdpConfig from './config/cdp.config';
@@ -22,6 +23,8 @@ import tgConfig from './config/tg.config';
 import { APP_GUARD } from '@nestjs/core';
 import { TelegramThrottlerGuard } from './guards/telegram.throttler.guard';
 import { RolesGuard } from './guards/role.guard';
+import { ReloadlyModule } from './reloadly/reloadly.module';
+import { AuthModule } from './auth/auth.module';
 
 
 @Module({
@@ -65,12 +68,18 @@ import { RolesGuard } from './guards/role.guard';
       }),
       inject: [ConfigService],
     }),
+    HttpModule.register({
+      timeout: 10000,
+      maxRedirects: 5,
+    }),
     AgentKitModule,
     BotModule,
     WebhookModule,
     ContractModule,
     UserModule,
     WalletModule,
+    ReloadlyModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [
