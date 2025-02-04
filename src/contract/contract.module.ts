@@ -1,11 +1,12 @@
 import { forwardRef, Module } from '@nestjs/common';
-import { BillcheapModule } from './billcheap/billcheap.module';
+import { GatewayModule } from './gateway/gateway.module';
 import { ContractClient } from './contract.client';
+import { GatewayService } from './gateway/gateway.service';
 
 @Module({
-  imports: [forwardRef(() => BillcheapModule)],
+  imports: [forwardRef(() => GatewayModule)],
   controllers: [],
-  providers: [ContractClient],
-  exports: [ContractClient],
+  providers: [ContractClient, GatewayService],
+  exports: [ContractClient, GatewayService],
 })
 export class ContractModule {}
