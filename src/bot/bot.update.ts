@@ -408,12 +408,11 @@ export class BotUpdate {
             break;
 
           default:
-            console.log(text);
-          // const res = await this.agentKit.prompt(text);
-          // await ctx.reply(
-          //   res ??
-          //     "I didn't understand that. Please use the menu options or type /start to begin.",
-          // );
+            const res = await this.botService.handleAgentInput(ctx, text);
+            await ctx.reply(
+              res ??
+                "I didn't understand that. Please use the menu options or type /start to begin.",
+            );
         }
       }
     } catch (error) {

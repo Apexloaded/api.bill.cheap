@@ -1,5 +1,6 @@
+import { AgentKitService } from '@/agent-kit/agent-kit.service';
 import { UserService } from '@/user/user.service';
-import { encodeString } from '@/utils/encrypt';
+import { decodeString, encodeString } from '@/utils/encrypt';
 import { generateId } from '@/utils/helpers';
 import { WalletService } from '@/wallet/wallet.service';
 import { Injectable } from '@nestjs/common';
@@ -14,6 +15,7 @@ export class BotService {
     private userService: UserService,
     private config: ConfigService,
     private walletService: WalletService,
+    private readonly agentKit: AgentKitService,
   ) {
     this.encryptionKey = this.config.get<string>('app.encryptionKey');
   }
@@ -49,5 +51,18 @@ export class BotService {
         wallet: wallet.address,
       },
     );
+  }
+
+  async handleAgentInput(ctx: Context, input: string) {
+    const user = await this.userService.findOne({ telegramId: ctx.from.id });
+    let response = '';
+    if (user) {
+      response = await this.agentKit.prompt({
+        prompt: input,
+        user_id: `${user._id}`,
+        thread_id: `${user._id}`,
+      });
+    }
+    return response;
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   AgentKit,
   CdpWalletProvider,
@@ -8,147 +8,135 @@ import {
   cdpApiActionProvider,
   cdpWalletActionProvider,
   pythActionProvider,
-  CdpWalletProviderConfig,
 } from '@coinbase/agentkit';
 import { getLangChainTools } from '@coinbase/agentkit-langchain';
 import { HumanMessage } from '@langchain/core/messages';
 import { MemorySaver } from '@langchain/langgraph';
 import { createReactAgent } from '@langchain/langgraph/prebuilt';
-import { ChatOpenAI, ChatOpenAICallOptions } from '@langchain/openai';
+import { ChatOpenAI } from '@langchain/openai';
 import { ConfigService } from '@nestjs/config';
-import * as fs from 'fs';
-import { StructuredTool } from '@langchain/core/tools';
 import { AgentKitAction } from './agent-kit.action';
+import { LRUCache } from 'lru-cache';
+import { AgentPrompt, CdpConfig } from './interfaces/agent-kit.interface';
+import { WalletService } from '@/wallet/wallet.service';
 
-type CdpConfig = CdpWalletProviderConfig & {
-  cdpWalletData?: string;
-  mnemonicPhrase?: string;
-};
+const MODIFIER = `
+    You are a helpful agent that can interact onchain using the Coinbase Developer Platform AgentKit. You are 
+    empowered to interact onchain using your tools. If you ever need funds, you can request them from the 
+    faucet if you are on network ID 'base-sepolia'. If not, you can provide your wallet details and request 
+    funds from the user. Before executing your first action, get the wallet details to see what network 
+    you're on. If there is a 5XX (internal) HTTP error code, ask the user to try again later. If someone 
+    asks you to do something you can't do with your currently available tools, you must say so, and 
+    encourage them to implement it themselves using the CDP SDK + Agentkit, recommend they go to 
+    docs.cdp.coinbase.com for more information. Be concise and helpful with your responses. Refrain from 
+    restating your tools' descriptions unless it is explicitly requested.
+`;
 
 @Injectable()
-export class AgentKitService implements OnModuleInit {
-  private agentKit: AgentKit;
-  private agentWalletFileName: string;
-  private walletData: string | null;
-  private cdpConfig: CdpConfig;
-  private cdpApiName: string;
-  private cpdApiKey: string;
-  private llm: ChatOpenAI<ChatOpenAICallOptions>;
-  private tools: StructuredTool[];
+export class AgentKitService {
+  private agentCache: LRUCache<string, any>;
+  private configKeys: {
+    apiName: string;
+    apiKey: string;
+    networkId: string;
+    openaiKey: string;
+  };
 
   constructor(
     private readonly config: ConfigService,
     private readonly action: AgentKitAction,
+    private readonly walletService: WalletService,
   ) {
-    this.cdpApiName = this.config.get('cdp.apiName');
-    this.cpdApiKey = this.config.get('cdp.apiKey')?.replace(/\\n/g, '\n');
-    this.agentWalletFileName = 'agent-wallet.json';
-
-    this.llm = new ChatOpenAI({
-      model: 'gpt-4o-mini',
-      apiKey: this.config.get('openai.apiKey'),
-    });
-
-    this.walletData = fs.existsSync(this.agentWalletFileName)
-      ? fs.readFileSync(this.agentWalletFileName, 'utf-8')
-      : null;
-
-    this.cdpConfig = {
-      apiKeyName: this.cdpApiName,
-      apiKeyPrivateKey: this.cpdApiKey,
-      cdpWalletData: this.walletData,
+    this.configKeys = {
+      apiName: this.config.get('cdp.apiName'),
+      apiKey: this.config.get('cdp.apiKey')?.replace(/\\n/g, '\n'),
       networkId: this.config.get('cdp.networkId'),
+      openaiKey: this.config.get('openai.apiKey'),
     };
-  }
 
-  async onModuleInit() {
-    try {
-      // Configure CDP Wallet Provider
-      const walletProvider = await CdpWalletProvider.configureWithWallet(
-        this.cdpConfig,
-      );
-
-      // Initialize AgentKit
-      this.agentKit = await AgentKit.from({
-        walletProvider,
-        actionProviders: [
-          wethActionProvider(),
-          pythActionProvider(),
-          walletActionProvider(),
-          erc20ActionProvider(),
-          cdpApiActionProvider({
-            apiKeyName: this.cdpApiName,
-            apiKeyPrivateKey: this.cpdApiKey,
-          }),
-          cdpWalletActionProvider({
-            apiKeyName: this.cdpApiName,
-            apiKeyPrivateKey: this.cpdApiKey,
-          }),
-          this.action.customSignMessage,
-          this.action.payBills,
-        ],
-      });
-      this.tools = await getLangChainTools(this.agentKit);
-
-      // await this.prompt('Process 100 naira worth of MTN airtime topup for 08142814191.');
-      // await this.prompt("Sign this message, Hello world right here");
-      //   await this.prompt(
-      //     'Develop and deploy a memecoin token called CDPA using bonding curve on base-sepolia network and display relevant information on the screen',
-      //   );
-
-      // Save wallet data
-      const exportedWallet = await walletProvider.exportWallet();
-      fs.writeFileSync(
-        this.agentWalletFileName,
-        JSON.stringify(exportedWallet),
-      );
-    } catch (error) {}
-  }
-
-  get agent() {
-    // Create React Agent using the LLM and CDP AgentKit tools
-    const memory = new MemorySaver();
-    return createReactAgent({
-      llm: this.llm,
-      tools: this.tools,
-      checkpointSaver: memory,
-      messageModifier: `
-        You are a helpful agent that can interact onchain using the Coinbase Developer Platform AgentKit. You are 
-        empowered to interact onchain using your tools. If you ever need funds, you can request them from the 
-        faucet if you are on network ID 'base-sepolia'. If not, you can provide your wallet details and request 
-        funds from the user. Before executing your first action, get the wallet details to see what network 
-        you're on. If there is a 5XX (internal) HTTP error code, ask the user to try again later. If someone 
-        asks you to do something you can't do with your currently available tools, you must say so, and 
-        encourage them to implement it themselves using the CDP SDK + Agentkit, recommend they go to 
-        docs.cdp.coinbase.com for more information. Be concise and helpful with your responses. Refrain from 
-        restating your tools' descriptions unless it is explicitly requested.
-        `,
+    this.agentCache = new LRUCache({
+      max: 100,
+      ttl: 1000 * 60 * 60,
+      updateAgeOnGet: true,
     });
   }
 
-  async prompt(input: string) {
-    console.log(input);
-    const config = {
-      configurable: { thread_id: 'CDP AgentKit Chatbot Example!' },
+  private createLLM() {
+    return new ChatOpenAI({
+      model: 'gpt-4o-mini',
+      apiKey: this.configKeys.openaiKey,
+    });
+  }
+
+  private async createUserAgent(user_id: string) {
+    const { seedPhrase } = await this.walletService.getUserWallet(user_id);
+
+    const cdpConfig: CdpConfig = {
+      apiKeyName: this.configKeys.apiName,
+      apiKeyPrivateKey: this.configKeys.apiKey,
+      networkId: this.configKeys.networkId,
+      mnemonicPhrase: seedPhrase,
     };
-    const stream = await this.agent.stream(
-      { messages: [new HumanMessage(input)] },
-      config,
+
+    const walletProvider =
+      await CdpWalletProvider.configureWithWallet(cdpConfig);
+    const agentKit = await AgentKit.from({
+      walletProvider,
+      actionProviders: [
+        wethActionProvider(),
+        pythActionProvider(),
+        walletActionProvider(),
+        erc20ActionProvider(),
+        cdpApiActionProvider({
+          apiKeyName: cdpConfig.apiKeyName,
+          apiKeyPrivateKey: cdpConfig.apiKeyPrivateKey,
+        }),
+        cdpWalletActionProvider({
+          apiKeyName: cdpConfig.apiKeyName,
+          apiKeyPrivateKey: cdpConfig.apiKeyPrivateKey,
+        }),
+        this.action.payBills,
+      ],
+    });
+
+    const tools = await getLangChainTools(agentKit);
+    return { agentKit, tools, walletProvider };
+  }
+
+  async getUserAgent(userId: string) {
+    const cacheKey = userId;
+    const cachedAgent = this.agentCache.get(cacheKey);
+
+    if (cachedAgent) return cachedAgent;
+
+    const { tools } = await this.createUserAgent(userId);
+    const memory = new MemorySaver();
+    const agent = createReactAgent({
+      llm: this.createLLM(),
+      tools,
+      checkpointSaver: memory,
+      messageModifier: MODIFIER,
+    });
+
+    this.agentCache.set(cacheKey, agent);
+    return agent;
+  }
+
+  async prompt(data: AgentPrompt) {
+    let { prompt, thread_id, user_id } = data;
+    const agent = await this.getUserAgent(user_id);
+
+    const stream = await agent.stream(
+      { messages: [new HumanMessage(prompt)] },
+      { configurable: { thread_id } },
     );
 
-    // Print the responses from the AgentKit and CDP tools to the console.
+    let output = '';
     for await (const chunk of stream) {
-      console.log(chunk);
-      if ('agent' in chunk) {
-        const response = chunk.agent.messages[0].content;
-        console.log(response);
-        //return response;
-      } else if ('tools' in chunk) {
-        const response = chunk.tools.messages[0].content;
-        console.log(response);
-        //return response;
-      }
-      console.log('-------------------');
+      if ('agent' in chunk) output += chunk.agent.messages[0].content + '\n';
+      if ('tools' in chunk) output += chunk.tools.messages[0].content;
     }
+
+    return output;
   }
 }
