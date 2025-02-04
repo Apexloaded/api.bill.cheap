@@ -54,3 +54,25 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Agents Wallets
+agent-wallet.json
+
+# Contract
+/contract/node_modules
+/contract/.env
+
+# Hardhat files
+/contract/cache
+/contract/artifacts
+
+# TypeChain files
+/contract/typechain
+/contract/typechain-types
+
+# solidity-coverage files
+/contract/coverage
+/contract/coverage.json
+
+# Hardhat Ignition default folder for deployments against a local node
+/contract/ignition/deployments/chain-31337

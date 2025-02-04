@@ -85,14 +85,17 @@ export class AgentKitService implements OnModuleInit {
             apiKeyPrivateKey: this.cpdApiKey,
           }),
           this.action.customSignMessage,
+          this.action.payBills,
         ],
       });
       this.tools = await getLangChainTools(this.agentKit);
 
-      await this.prompt("Sign this message, Hello world right here");
+      // await this.prompt('Process 100 naira worth of MTN airtime topup for 08142814191.');
+      // await this.prompt("Sign this message, Hello world right here");
       //   await this.prompt(
       //     'Develop and deploy a memecoin token called CDPA using bonding curve on base-sepolia network and display relevant information on the screen',
       //   );
+
       // Save wallet data
       const exportedWallet = await walletProvider.exportWallet();
       fs.writeFileSync(
@@ -124,6 +127,7 @@ export class AgentKitService implements OnModuleInit {
   }
 
   async prompt(input: string) {
+    console.log(input);
     const config = {
       configurable: { thread_id: 'CDP AgentKit Chatbot Example!' },
     };
@@ -134,11 +138,15 @@ export class AgentKitService implements OnModuleInit {
 
     // Print the responses from the AgentKit and CDP tools to the console.
     for await (const chunk of stream) {
-      console.log('chunk ', chunk);
+      console.log(chunk);
       if ('agent' in chunk) {
-        console.log(chunk.agent.messages[0].content);
+        const response = chunk.agent.messages[0].content;
+        console.log(response);
+        //return response;
       } else if ('tools' in chunk) {
-        console.log(chunk.tools.messages[0].content);
+        const response = chunk.tools.messages[0].content;
+        console.log(response);
+        //return response;
       }
       console.log('-------------------');
     }
