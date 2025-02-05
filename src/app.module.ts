@@ -14,6 +14,8 @@ import { UserModule } from './user/user.module';
 import { WalletModule } from './wallet/wallet.module';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { HttpModule } from '@nestjs/axios';
+import { ReloadlyModule } from './reloadly/reloadly.module';
+import { AuthModule } from './auth/auth.module';
 
 import appConfig from './config/app.config';
 import cdpConfig from './config/cdp.config';
@@ -23,8 +25,8 @@ import tgConfig from './config/tg.config';
 import { APP_GUARD } from '@nestjs/core';
 import { TelegramThrottlerGuard } from './guards/telegram.throttler.guard';
 import { RolesGuard } from './guards/role.guard';
-import { ReloadlyModule } from './reloadly/reloadly.module';
-import { AuthModule } from './auth/auth.module';
+import { BillModule } from './bill/bill.module';
+import { ExchangeModule } from './exchange/exchange.module';
 
 
 @Module({
@@ -80,6 +82,8 @@ import { AuthModule } from './auth/auth.module';
     WalletModule,
     ReloadlyModule,
     AuthModule,
+    BillModule,
+    ExchangeModule,
   ],
   controllers: [AppController],
   providers: [

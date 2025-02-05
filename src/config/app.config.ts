@@ -8,4 +8,5 @@ export default registerAs('app', () => ({
   db: process.env.DB_URI,
   encryptionKey: process.env.ENCRYPTION_KEY,
   secretKey: process.env.SECRET_KEY,
+  exhangeRate: process.env.EXCHANGE_RATE_API,
 }));

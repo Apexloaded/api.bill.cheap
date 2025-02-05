@@ -37,6 +37,8 @@ export class ReloadlyAuthService {
       `${ReloadlySubPath.Auth}.${this.apiUrl}/${reloadlyPath.auth}`,
     );
 
+    console.log(authUrl);
+
     const { data } = await firstValueFrom(
       this.httpService
         .auth(
@@ -59,6 +61,7 @@ export class ReloadlyAuthService {
             return response;
           }),
           catchError((error) => {
+            console.error('Error:', error.response);
             return throwError(() => new Error(error));
           }),
         ),
@@ -78,7 +81,7 @@ export class ReloadlyAuthService {
     };
 
     this.tokenStorageService.setAuthToken(authData);
-    return authData.accessToken;
+    return data.access_token;
   }
 
   public async ensureValidToken(key: AudienceType): Promise<string> {

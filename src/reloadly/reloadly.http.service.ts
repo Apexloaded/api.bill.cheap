@@ -23,11 +23,9 @@ export class ReloadlyHttpService {
     data?: ReloadlyAuthRequest,
     config?: AxiosRequestConfig,
   ): Observable<AxiosResponse<any>> {
-    return this.httpService.post(`${this.apiUrl}/auth`, data, {
+    return this.httpService.post(url, data, {
       headers: {
         ...config.headers,
-        'x-audience-url': url,
-        'x-bc-key': this.appKey,
       },
     });
   }
@@ -38,8 +36,8 @@ export class ReloadlyHttpService {
     accessToken: string,
     config?: AxiosRequestConfig,
   ): Observable<AxiosResponse<any>> {
-    config = this.addAuthHeader(url, accessToken);
-    return this.httpService.post(this.apiUrl, data, config);
+    config = this.addAuthorizationHeader(config, accessToken);
+    return this.httpService.post(url, data, config);
   }
 
   get(
@@ -47,8 +45,8 @@ export class ReloadlyHttpService {
     accessToken: string,
     config?: AxiosRequestConfig,
   ): Observable<AxiosResponse<any>> {
-    config = this.addAuthHeader(url, accessToken);
-    return this.httpService.get(this.apiUrl, config);
+    config = this.addAuthorizationHeader(config, accessToken);
+    return this.httpService.get(url, config);
   }
 
   private addAuthorizationHeader(

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import {
   AgentKit,
   CdpWalletProvider,
@@ -20,10 +20,22 @@ import { LRUCache } from 'lru-cache';
 import { AgentPrompt, CdpConfig } from './interfaces/agent-kit.interface';
 import { WalletService } from '@/wallet/wallet.service';
 import MODIFIER from './modifiers/billing.modifier';
+import { billcheapActionProvider } from './actions/billcheap/billcheap.action';
+import { BillProvider } from '@/bill/bill.provider';
+import { AnnotationRoot } from '@langchain/langgraph/dist/graph/annotation';
+import * as fs from 'fs';
+import { GatewayService } from '@/contract/gateway/gateway.service';
 
+export type ReactAgent<
+  A extends AnnotationRoot<any> = AnnotationRoot<{}>,
+  StructuredResponseFormat extends Record<string, any> = Record<string, any>,
+> = ReturnType<typeof createReactAgent<A, StructuredResponseFormat>>;
 @Injectable()
 export class AgentKitService {
-  private agentCache: LRUCache<string, any>;
+  private topUpDataSourceFile: string;
+  private topUpData: string | null = null;
+  private dataSource: string;
+  private agentCache: LRUCache<string, ReactAgent>;
   private configKeys: {
     apiName: string;
     apiKey: string;
@@ -35,6 +47,8 @@ export class AgentKitService {
     private readonly config: ConfigService,
     private readonly action: AgentKitAction,
     private readonly walletService: WalletService,
+    private billProvider: BillProvider,
+    private gateway: GatewayService,
   ) {
     this.configKeys = {
       apiName: this.config.get('cdp.apiName'),
@@ -48,6 +62,8 @@ export class AgentKitService {
       ttl: 1000 * 60 * 60,
       updateAgeOnGet: true,
     });
+    this.dataSource = MODIFIER;
+    this.topUpDataSourceFile = 'top-up-data-source.json';
   }
 
   private createLLM() {
@@ -81,11 +97,17 @@ export class AgentKitService {
           apiKeyName: cdpConfig.apiKeyName,
           apiKeyPrivateKey: cdpConfig.apiKeyPrivateKey,
         }),
-        this.action.processTopup({
-          id: user_id,
-          walletAddress: user.wallet,
-          phone: user.phone,
+        billcheapActionProvider({
+          userId: user_id,
+          billProvider: this.billProvider,
+          gateway: this.gateway,
         }),
+
+        // this.action.processTopupActionProvider({
+        //   id: user_id,
+        //   walletAddress: user.wallet,
+        //   phone: user.phone,
+        // }),
       ],
     });
 
@@ -123,8 +145,9 @@ export class AgentKitService {
 
     let output = '';
     for await (const chunk of stream) {
-      if ('agent' in chunk) output += chunk.agent.messages[0].content + '\n';
-      if ('tools' in chunk) output += chunk.tools.messages[0].content;
+      if ('agent' in chunk) {
+        output += chunk.agent.messages[0].content + '\n';
+      }
     }
 
     return output;

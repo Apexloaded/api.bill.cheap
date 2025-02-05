@@ -1,11 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ReloadlyHttpService } from './reloadly.http.service';
 import { ConfigService } from '@nestjs/config';
-import {
-  Audience,
-  AudienceType,
-  reloadlyPath,
-} from '@/enums/reloadly.enum';
+import { Audience, AudienceType, reloadlyPath } from '@/enums/reloadly.enum';
 import { getProtocol } from '@/utils/helpers';
 import { ReloadlyAuthService } from './auth/reloadly.auth.service';
 import { catchError, firstValueFrom, map, throwError } from 'rxjs';
@@ -30,6 +26,7 @@ export class ReloadlyService {
 
   async getApi<T>(url: string, key: AudienceType, config?: AxiosRequestConfig) {
     const accessToken = await this.reloadlyAuthService.ensureValidToken(key);
+    console.log(accessToken);
     const { data } = await firstValueFrom(
       this.httpService.get(url, accessToken, config).pipe(
         map((response: AxiosResponse<T>) => response),
@@ -47,7 +44,7 @@ export class ReloadlyService {
     );
     return data;
   }
-  
+
   async postApi<Body, Res>(
     url: string,
     key: AudienceType,

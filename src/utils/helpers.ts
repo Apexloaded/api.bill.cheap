@@ -25,3 +25,7 @@ export const generateId = ({
   const uid = new ShortUniqueId({ length, ...prop });
   return uid.randomUUID();
 };
+export function getPercentage(from: number, percentage: number): number {
+  const perc = (from * percentage) / 100;
+  return perc;
+}

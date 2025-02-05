@@ -412,6 +412,9 @@ export class BotUpdate {
             await ctx.reply(
               res ??
                 "I didn't understand that. Please use the menu options or type /start to begin.",
+              {
+                parse_mode: 'Markdown',
+              },
             );
         }
       }
