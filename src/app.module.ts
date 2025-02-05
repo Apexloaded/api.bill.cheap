@@ -27,6 +27,7 @@ import { TelegramThrottlerGuard } from './guards/telegram.throttler.guard';
 import { RolesGuard } from './guards/role.guard';
 import { BillModule } from './bill/bill.module';
 import { ExchangeModule } from './exchange/exchange.module';
+import { TransactionModule } from './transaction/transaction.module';
 
 
 @Module({
@@ -84,6 +85,7 @@ import { ExchangeModule } from './exchange/exchange.module';
     AuthModule,
     BillModule,
     ExchangeModule,
+    TransactionModule,
   ],
   controllers: [AppController],
   providers: [
