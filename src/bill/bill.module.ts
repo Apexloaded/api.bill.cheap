@@ -8,6 +8,7 @@ import { BillProvider } from './bill.provider';
 import { ReloadlyModule } from '@/reloadly/reloadly.module';
 import { HttpModule } from '@nestjs/axios';
 import { ExchangeModule } from '@/exchange/exchange.module';
+import { TransactionModule } from '@/transaction/transaction.module';
 
 @Module({
   imports: [
@@ -15,7 +16,8 @@ import { ExchangeModule } from '@/exchange/exchange.module';
     MongooseModule.forFeature([{ name: Bill.name, schema: BillSchema }]),
     ReloadlyModule,
     HttpModule,
-    ExchangeModule
+    ExchangeModule,
+    TransactionModule
   ],
   controllers: [BillController],
   providers: [BillService, BillProvider],

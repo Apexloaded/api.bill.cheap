@@ -7,13 +7,22 @@ import {
   SelectProvider,
 } from './types/provider.type';
 import { CreateBillDto } from './dto/create-bill.dto';
-import { generateId, getPercentage } from '@/utils/helpers';
+import {
+  generateId,
+  generateUniqueRandomArray,
+  getPercentage,
+} from '@/utils/helpers';
 import { BillService } from './bill.service';
 import { User } from '@/user/entities/user.entity';
 import { Bill, BillType } from './entities/bill.entity';
 import { AirtimeService } from './airtime/airtime.service';
 import { ExchangeService } from '@/exchange/exchange.service';
 import { Airtime } from './airtime/entities/airtime.entity';
+import { TransactionService } from '@/transaction/transaction.service';
+import {
+  PaymentMethods,
+  TxType,
+} from '@/transaction/entities/transaction.entity';
 
 @Injectable()
 export class BillProvider {
@@ -27,6 +36,7 @@ export class BillProvider {
     private billService: BillService,
     private airtimeService: AirtimeService,
     private exchangeService: ExchangeService,
+    private txService: TransactionService,
   ) {}
 
   async autoDetectProvider(phone: string, iso: string) {
@@ -102,21 +112,19 @@ export class BillProvider {
       },
     );
 
-    const operators = response.filter((p) =>
-      mappedOptions.dataOnly === true
-        ? p.denominationType === 'FIXED'
-        : p.denominationType === 'RANGE',
-    );
-
-    if (mappedOptions.dataOnly == false && iso == 'NG') {
-      return operators.map((op) => {
-        const { suggestedAmounts, ...rest } = op;
-        return {
-          ...rest,
-          suggestedAmounts: this.suggestedAmounts(),
-        };
-      });
-    }
+    const operators = response.map((op) => {
+      if (
+        op.country.isoName.toLowerCase() === 'ng' &&
+        op.denominationType === 'RANGE'
+      ) {
+        op.suggestedAmounts = generateUniqueRandomArray(
+          op.minAmount,
+          op.maxAmount,
+          8,
+        );
+      }
+      return op;
+    });
 
     return operators;
   }
@@ -206,12 +214,13 @@ export class BillProvider {
         billId: newBill._id.toString(),
         amount: parseFloat(amount),
         currencySymbol,
-        type: 'BILL_PAYMENT',
-        paymentMethod: 'crypto',
+        type: TxType.BILL_PAYMENT,
+        paymentMethod: PaymentMethods.CRYPTO,
         tokenAddress: token,
         description: `${providerName.split(' ')[0]} ${this.desc[billType]}`,
         amountInUsd: parseFloat(usdValue.toFixed(2)),
       };
+      const transaction = await this.txService.create(txPayload);
       console.log(txPayload);
     } catch (error) {
       console.error('Error generating bill transaction:', error);
@@ -225,36 +234,20 @@ export class BillProvider {
 
   selectAirtimeProvider(data: SelectProvider) {
     console.log('SELECT AIRTIME PROVIDER');
-    const { providers, inputedProviderName, isoCode, callingCode } = data;
+    const { providers, inputedProviderName, isoCode } = data;
 
-    // Filter providers based on the given criteria
-    const selectedProvider = providers.filter((provider) => {
-      // Check if the provider is for airtime (RANGE denomination type)
-      const isAirtimeProvider =
-        provider.bundle === false && provider.data === false;
-
-      // Check if the provider matches the country (either by ISO code or calling code)
-      const matchesCountry =
-        isoCode &&
-        provider.country.isoName.toLowerCase() === isoCode.toLowerCase();
-
-      // If a specific provider name is given, check for a match
-      const matchesName = inputedProviderName
-        ? provider.name
-            .toLowerCase()
-            .includes(inputedProviderName.toLowerCase())
-        : true;
-
-      // Check if the provider is pin-less and has RANGE denomination type
-      const isPinlessRange =
-        provider.pin === false ? provider.denominationType === 'RANGE' : true;
-
-      // Return true if all conditions are met
-      return (
-        isAirtimeProvider && matchesCountry && matchesName && isPinlessRange
-      );
-    });
-
+    const selectedProvider = providers.filter(
+      (p) =>
+        p.data === false &&
+        p.bundle === false &&
+        (p.pin
+          ? p.denominationType === 'FIXED'
+          : p.denominationType === 'RANGE') &&
+        p.country.isoName.toLowerCase() === isoCode.toLowerCase() &&
+        p.name
+          .toLowerCase()
+          .includes(inputedProviderName.split(' ')[0].toLowerCase()),
+    );
     console.log(`Found ${selectedProvider.length} matching provider(s)`);
 
     // If no providers were found, return all airtime providers for the country
@@ -267,11 +260,11 @@ export class BillProvider {
           (provider) =>
             provider.bundle === false &&
             provider.data === false &&
+            (provider.pin
+              ? provider.denominationType === 'FIXED'
+              : provider.denominationType === 'RANGE') &&
             isoCode &&
-            provider.country.isoName.toLowerCase() === isoCode.toLowerCase() &&
-            (provider.pin === false
-              ? provider.denominationType === 'RANGE'
-              : true),
+            provider.country.isoName.toLowerCase() === isoCode.toLowerCase(),
         ),
       };
     }
@@ -283,30 +276,15 @@ export class BillProvider {
     console.log('SELECT MOBILE DATA PROVIDER');
     const { providers, inputedProviderName, isoCode } = data;
 
-    // Filter providers based on the given criteria
-    const selectedProvider = providers.filter((provider) => {
-      // Check if the provider is for data (RANGE denomination type)
-      const isDataProvider =
-        provider.denominationType === 'FIXED' &&
-        provider.bundle === true &&
-        provider.data === true;
-
-      // Check if the provider matches the country (either by ISO code or calling code)
-      const matchesCountry =
-        isoCode &&
-        provider.country.isoName.toLowerCase() === isoCode.toLowerCase();
-
-      // If a specific provider name is given, check for a match
-      const matchesName = inputedProviderName
-        ? provider.name
-            .toLowerCase()
-            .includes(inputedProviderName.toLowerCase())
-        : true;
-
-      // Return true if all conditions are met
-      return isDataProvider && matchesCountry && matchesName;
-    });
-
+    const selectedProvider = providers.filter(
+      (p) =>
+        p.data === true &&
+        p.denominationType === 'FIXED' &&
+        p.country.isoName.toLowerCase() === isoCode.toLowerCase() &&
+        p.name
+          .toLowerCase()
+          .includes(inputedProviderName.split(' ')[0].toLowerCase()),
+    );
     console.log(`Found ${selectedProvider.length} matching provider(s)`);
 
     // If no providers were found, return all data providers for the country
@@ -318,7 +296,6 @@ export class BillProvider {
         selectedProvider: providers.filter(
           (provider) =>
             provider.denominationType === 'FIXED' &&
-            provider.bundle === true &&
             provider.data === true &&
             isoCode &&
             provider.country.isoName.toLowerCase() === isoCode.toLowerCase(),

@@ -102,12 +102,6 @@ export class AgentKitService {
           billProvider: this.billProvider,
           gateway: this.gateway,
         }),
-
-        // this.action.processTopupActionProvider({
-        //   id: user_id,
-        //   walletAddress: user.wallet,
-        //   phone: user.phone,
-        // }),
       ],
     });
 

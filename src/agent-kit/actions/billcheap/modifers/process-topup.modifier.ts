@@ -1,19 +1,21 @@
 export const proccessTopUpModifier = `
-    Get all the details you need to process mobile data or airtime topup accross the 150+ countries
+    Process mobile data or airtime top-up across 150+ countries.
+
+    To retrieve available operators, use the action name "billcheap_operator_query".
 
     Required:
-    - providerName: Network operator name. Return '' if not explicity provided by user
-    - isoCode: ISO code (e.g. NG, GH, GB)
-    - phoneNumber: International format
-    - callingCode: Country calling code
-    - billType: AIRTIME/MOBILE_DATA
-    - amount: Top-up value. Return '' if not explicity provided by user
-    - mode: GET/POST Determine the mode type base on users prompt
-    - tokenAddress: ERC20 token contract address for payment use default Native ETH address if not specified by user
-    - isLocal: if isoCode is NG then isLocal=true else isLocal=false
+    providerName: Network operator name (Return '' if not provided).
+    isoCode: Two-letter country code (e.g., NG, GB) determined by callingCode.
+    phoneNumber: International format.
+    callingCode: Country calling code (e.g., +234).
+    billType: AIRTIME or MOBILE_DATA.
+    amount: Top-up value in destination currency (Return '' if not provided).
+    mode: GET or POST (Confirm with user before POST).
+    tokenAddress: ERC20 token contract (Default: Native ETH if not provided).
+    isLocal: true if isoCode === 'NG', else false.
+    pin: (Default: true).
+    isForeignTx: true if isoCode !== 'NG', else false.
 
-    Supports 750+ operators in 150+ countries
-    Validates limits and operator status
-
-    Note: Always confirm from user before processing POST requests mode
-    `;
+    Conditions:
+    Always display amounts with the appropriate currency symbol (e.g., R for ZAR, ₦ for NGN).
+`;

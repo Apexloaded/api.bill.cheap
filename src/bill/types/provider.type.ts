@@ -53,6 +53,7 @@ export type SelectProvider = {
   inputedProviderName: string;
   callingCode?: string;
   isoCode?: string;
+  pin?: boolean;
 };
 
 export type PaginatedProviderList = {

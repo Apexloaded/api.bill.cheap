@@ -16,5 +16,7 @@ export const TopUpBillSchema = z.object({
   providerId: z.number().describe('The service providers id'),
   providerLogoUrl: z.string().describe('The logo url of the provider'),
   isLocal: z.boolean(),
+  pin: z.boolean().default(true),
+  isForeignTx: z.boolean(),
   mode: z.enum([Mode.GET, Mode.POST]),
 });
