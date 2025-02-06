@@ -1,9 +1,9 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { IsEnum, IsString } from 'class-validator';
-import { CreateAirtimeDto } from '../airtime/dto/create-airtime.dto';
+import { CreateTopUpDto } from '../topup/dto/create-topup.dto';
 import { BillType } from '../entities/bill.entity';
 
-export class CreateBillDto extends PartialType(CreateAirtimeDto) {
+export class CreateBillDto extends PartialType(CreateTopUpDto) {
   @IsString()
   userId: string;
 

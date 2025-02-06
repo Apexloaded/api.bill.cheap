@@ -49,10 +49,7 @@ export class Transaction {
   amount: number; // Amount in NGN
 
   @Prop()
-  foreignAmount: number; // Amount in the destination currency if applicable
-
-  @Prop()
-  foreignCurrency: string; // The currency of the destination amount
+  currency: string; // The currency of the destination amount
 
   @Prop({ required: true })
   amountInUsd: number;

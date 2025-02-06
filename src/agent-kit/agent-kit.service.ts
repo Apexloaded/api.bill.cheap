@@ -97,6 +97,10 @@ export class AgentKitService {
           apiKeyName: cdpConfig.apiKeyName,
           apiKeyPrivateKey: cdpConfig.apiKeyPrivateKey,
         }),
+        cdpWalletActionProvider({
+          apiKeyName: cdpConfig.apiKeyName,
+          apiKeyPrivateKey: cdpConfig.apiKeyPrivateKey,
+        }),
         billcheapActionProvider({
           userId: user_id,
           billProvider: this.billProvider,

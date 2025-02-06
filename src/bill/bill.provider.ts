@@ -15,14 +15,16 @@ import {
 import { BillService } from './bill.service';
 import { User } from '@/user/entities/user.entity';
 import { Bill, BillType } from './entities/bill.entity';
-import { AirtimeService } from './airtime/airtime.service';
+import { TopUpService } from './topup/topup.service';
 import { ExchangeService } from '@/exchange/exchange.service';
-import { Airtime } from './airtime/entities/airtime.entity';
+import { TopUp } from './topup/entities/topup.entity';
 import { TransactionService } from '@/transaction/transaction.service';
 import {
   PaymentMethods,
   TxType,
 } from '@/transaction/entities/transaction.entity';
+import { toHex } from 'viem';
+import { ContractBillType, ContractTxType } from '@/enums/contract.enum';
 
 @Injectable()
 export class BillProvider {
@@ -34,7 +36,7 @@ export class BillProvider {
   constructor(
     private readonly reloadly: ReloadlyService,
     private billService: BillService,
-    private airtimeService: AirtimeService,
+    private topUpService: TopUpService,
     private exchangeService: ExchangeService,
     private txService: TransactionService,
   ) {}
@@ -184,6 +186,8 @@ export class BillProvider {
         billType: billType,
         amount: parseFloat(amount),
         reference: customIdentifier,
+        useLocalAmount: currencySymbol.toLowerCase() !== 'ngn',
+        currency: currencySymbol,
       };
       const newBill = await this.billService.create(billPayload);
 
@@ -199,21 +203,18 @@ export class BillProvider {
           countryCode: isoCode,
           number: phoneNumber,
         },
-        localAmount: parseFloat(amount),
+        amount: parseFloat(amount),
+        currency: currencySymbol,
         reference: customIdentifier,
       };
 
-      switch (billType) {
-        case BillType.AIRTIME: {
-          await this.airtimeService.create(topUpPayload);
-        }
-      }
+      await this.topUpService.create(topUpPayload);
 
       const txPayload = {
         userId: userId,
         billId: newBill._id.toString(),
         amount: parseFloat(amount),
-        currencySymbol,
+        currency: currencySymbol,
         type: TxType.BILL_PAYMENT,
         paymentMethod: PaymentMethods.CRYPTO,
         tokenAddress: token,
@@ -221,7 +222,16 @@ export class BillProvider {
         amountInUsd: parseFloat(usdValue.toFixed(2)),
       };
       const transaction = await this.txService.create(txPayload);
-      console.log(txPayload);
+
+      const response = {
+        transactionId: toHex(transaction._id.toString()),
+        billType: ContractBillType[billType],
+        billId: toHex(newBill._id.toString()),
+        tokenAddress: token,
+        transactionType: ContractTxType.BillPayment,
+        providerId: toHex(provider),
+      };
+      return response;
     } catch (error) {
       console.error('Error generating bill transaction:', error);
       throw new Error('Failed to generate bill transaction.');

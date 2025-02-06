@@ -28,6 +28,7 @@ import { RolesGuard } from './guards/role.guard';
 import { BillModule } from './bill/bill.module';
 import { ExchangeModule } from './exchange/exchange.module';
 import { TransactionModule } from './transaction/transaction.module';
+import { NetworkModule } from './network/network.module';
 
 
 @Module({
@@ -86,6 +87,7 @@ import { TransactionModule } from './transaction/transaction.module';
     BillModule,
     ExchangeModule,
     TransactionModule,
+    NetworkModule,
   ],
   controllers: [AppController],
   providers: [

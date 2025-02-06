@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BillService } from './bill.service';
 import { BillController } from './bill.controller';
-import { AirtimeModule } from './airtime/airtime.module';
+import { TopUpModule } from './topup/topup.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Bill, BillSchema } from './entities/bill.entity';
 import { BillProvider } from './bill.provider';
@@ -12,12 +12,12 @@ import { TransactionModule } from '@/transaction/transaction.module';
 
 @Module({
   imports: [
-    AirtimeModule,
+    TopUpModule,
     MongooseModule.forFeature([{ name: Bill.name, schema: BillSchema }]),
     ReloadlyModule,
     HttpModule,
     ExchangeModule,
-    TransactionModule
+    TransactionModule,
   ],
   controllers: [BillController],
   providers: [BillService, BillProvider],

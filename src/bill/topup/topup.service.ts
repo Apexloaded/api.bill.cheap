@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { CreateAirtimeDto } from './dto/create-airtime.dto';
-import { UpdateAirtimeDto } from './dto/update-airtime.dto';
+import { CreateTopUpDto } from './dto/create-topup.dto';
+import { UpdateTopUpDto } from './dto/update-topup.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { Airtime } from './entities/airtime.entity';
+import { TopUp } from './entities/topup.entity';
 import { Model } from 'mongoose';
 
 @Injectable()
-export class AirtimeService {
-  constructor(@InjectModel(Airtime.name) private model: Model<Airtime>) {}
-  create(payload: Partial<Airtime>) {
+export class TopUpService {
+  constructor(@InjectModel(TopUp.name) private model: Model<TopUp>) {}
+  create(payload: Partial<TopUp>) {
     return this.model.create(payload);
   }
 
@@ -20,7 +20,7 @@ export class AirtimeService {
     return `This action returns a #${id} airtime`;
   }
 
-  update(id: number, updateAirtimeDto: UpdateAirtimeDto) {
+  update(id: number, updateAirtimeDto: UpdateTopUpDto) {
     return `This action updates a #${id} airtime`;
   }
 

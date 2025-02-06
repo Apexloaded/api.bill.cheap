@@ -34,6 +34,12 @@ export class Bill {
   amount: number;
 
   @Prop()
+  currency: string;
+
+  @Prop({ default: false })
+  useLocalAmount: boolean;
+
+  @Prop()
   dueDate: Date;
 
   @Prop()

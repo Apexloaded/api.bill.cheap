@@ -1,8 +1,8 @@
 export enum ContractBillType {
-  Airtime,
-  Data,
-  Electricity,
-  CableTv,
+  AIRTIME,
+  ELECTRICITY,
+  CABLE_TV,
+  MOBILE_DATA,
 }
 
 export enum ContractTxType {

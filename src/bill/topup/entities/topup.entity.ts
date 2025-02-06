@@ -3,7 +3,7 @@ import { User } from '@/user/entities/user.entity';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { HydratedDocument } from 'mongoose';
 
-export type AirtimeDocument = HydratedDocument<Airtime>;
+export type TopUpDocument = HydratedDocument<TopUp>;
 
 export class Recipient {
   @Prop({ required: true })
@@ -28,7 +28,7 @@ export class Provider {
 }
 
 @Schema({ timestamps: true })
-export class Airtime {
+export class TopUp {
   @Prop({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Bill',
@@ -50,13 +50,10 @@ export class Airtime {
   recipient: Recipient;
 
   @Prop({ required: true })
-  localAmount: number;
+  amount: number;
 
   @Prop()
-  foreignAmount: number;
-
-  @Prop()
-  currencyCode: string;
+  currency: string;
 
   @Prop({ required: true })
   reference: string;
@@ -68,4 +65,4 @@ export class Airtime {
   updatedAt: Date;
 }
 
-export const AirtimeSchema = SchemaFactory.createForClass(Airtime);
+export const TopUpSchema = SchemaFactory.createForClass(TopUp);

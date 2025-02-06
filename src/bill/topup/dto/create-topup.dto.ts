@@ -1,7 +1,7 @@
 import { BillStatus } from '@/bill/entities/bill.entity';
 import { IsString } from 'class-validator';
 
-export class CreateAirtimeDto {
+export class CreateTopUpDto {
   @IsString()
   amount: string;
 
@@ -30,7 +30,7 @@ export class CreateAirtimeDto {
   isoCode: string;
 }
 
-export class AirtimeBodyRequest {
+export class TopUpBodyRequest {
   operatorId: string;
   amount: string;
   customIdentifier: string;
@@ -40,14 +40,14 @@ export class AirtimeBodyRequest {
   };
 }
 
-export class AirtimeStatusResponse {
+export class TopUpStatusResponse {
   code: string | null;
   message: string | null;
   status: BillStatus;
-  transaction: AirtimeBodyResponse;
+  transaction: TopUpBodyResponse;
 }
 
-export class AirtimeBodyResponse {
+export class TopUpBodyResponse {
   transactionId: number;
   status: BillStatus;
   operatorTransactionId: string;
