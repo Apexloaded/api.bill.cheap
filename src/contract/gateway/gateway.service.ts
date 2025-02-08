@@ -150,4 +150,22 @@ export class GatewayService {
 
     return events;
   }
+
+  subscribeToEvents(callback: (event: BlockchainEvent) => void) {
+    const eventNames = [ContractEvents.BillProcessed];
+
+    for (const eventName of eventNames) {
+      this.contract.on(eventName, (...args) => {
+        const event = args[args.length - 1];
+        callback({
+          name: eventName,
+          args: event.args,
+          blockNumber: event.log.blockNumber,
+          transactionHash: event.log.transactionHash,
+        });
+      });
+    }
+
+    this.logger.log('Subscribed to real-time events');
+  }
 }

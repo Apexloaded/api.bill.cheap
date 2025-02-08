@@ -17,12 +17,13 @@ export class GatewayListener implements OnModuleInit {
     private readonly gateway: GatewayService,
     @InjectModel(ContractEvent.name)
     private readonly model: Model<ContractEvent>,
-    private readonly billProcessor: BillProcessor
+    private readonly billProcessor: BillProcessor,
   ) {
     this.deployedAtBlock = 21587804;
   }
 
   async onModuleInit() {
+    this.subscribeToRealTimeEvents();
     await this.initializeLastProcessedBlock();
   }
 
@@ -60,6 +61,12 @@ export class GatewayListener implements OnModuleInit {
     }
   }
 
+  private subscribeToRealTimeEvents() {
+    this.gateway.subscribeToEvents(async (event: BlockchainEvent) => {
+      this.logger.log('************Subscribed Events:************', event);
+      await this.processEvent(event);
+    });
+  }
   private async initializeLastProcessedBlock() {
     const lastProcessedEvent = await this.model
       .findOne()

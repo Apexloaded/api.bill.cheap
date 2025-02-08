@@ -27,69 +27,37 @@ export class BillProcessor {
 
     if (!bill || !transaction) return;
 
-    switch (bill.billType) {
-      case BillType.AIRTIME: {
-        try {
-          const airtimeRes = await this.topUpProcessor.processTopUp(
-            unHashedBillId,
-            bill.useLocalAmount,
-          );
+    if (
+      bill.billType === BillType.AIRTIME ||
+      bill.billType === BillType.MOBILE_DATA
+    ) {
+      try {
+        const topupResponse = await this.topUpProcessor.processTopUp(
+          unHashedBillId,
+          bill.useLocalAmount,
+        );
 
-          const [billsUpdate, txUpdate] = await Promise.all([
-            this.billService.updateOne(
-              { _id: unHashedBillId },
-              {
-                status: airtimeRes.status,
-                billExternalId: airtimeRes.transaction.transactionId,
-              },
-            ),
-            this.txService.update(
-              { _id: unHashedTransactionId },
-              {
-                hash: event.transactionHash,
-                status: TxStatus.SUCCESSFUL,
-                onChainTxId: id,
-                senderAddress: from,
-              },
-            ),
-          ]);
-        } catch (error) {
-          this.logger.error('Error processing airtime bill', error);
-        }
-        break;
+        const [billsUpdate, txUpdate] = await Promise.all([
+          this.billService.updateOne(
+            { _id: unHashedBillId },
+            {
+              status: topupResponse.status,
+              billExternalId: topupResponse.transaction.transactionId,
+            },
+          ),
+          this.txService.update(
+            { _id: unHashedTransactionId },
+            {
+              hash: event.transactionHash,
+              status: TxStatus.SUCCESSFUL,
+              onChainTxId: id,
+              senderAddress: from,
+            },
+          ),
+        ]);
+      } catch (error) {
+        this.logger.error('Error processing airtime bill', error);
       }
-      case BillType.MOBILE_DATA: {
-        try {
-          const airtimeRes = await this.topUpProcessor.processTopUp(
-            unHashedBillId,
-            bill.useLocalAmount,
-          );
-
-          const [billsUpdate, txUpdate] = await Promise.all([
-            this.billService.updateOne(
-              { _id: unHashedBillId },
-              {
-                status: airtimeRes.status,
-                billExternalId: airtimeRes.transaction.transactionId,
-              },
-            ),
-            this.txService.update(
-              { _id: unHashedTransactionId },
-              {
-                hash: event.transactionHash,
-                status: TxStatus.SUCCESSFUL,
-                onChainTxId: id,
-                senderAddress: from,
-              },
-            ),
-          ]);
-        } catch (error) {
-          this.logger.error('Error processing airtime bill', error);
-        }
-        break;
-      }
-      default:
-        this.logger.warn(`Unhandled event type: ${event.name}`);
     }
   }
 }
