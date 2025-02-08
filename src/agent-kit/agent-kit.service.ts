@@ -32,6 +32,9 @@ export type ReactAgent<
 export class AgentKitService {
   private agentCache: LRUCache<string, ReactAgent>;
   private configKeys: {
+    apiName: string;
+    apiKey: string;
+    networkId: string;
     openaiKey: string;
     rpc: string;
   };
@@ -43,6 +46,9 @@ export class AgentKitService {
     private gateway: GatewayService,
   ) {
     this.configKeys = {
+      apiName: this.config.get('cdp.apiName'),
+      apiKey: this.config.get('cdp.apiKey')?.replace(/\\n/g, '\n'),
+      networkId: this.config.get('cdp.networkId'),
       openaiKey: this.config.get('openai.apiKey'),
       rpc: this.config.get('app.rpc'),
     };

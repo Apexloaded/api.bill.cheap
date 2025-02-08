@@ -10,4 +10,6 @@ export default registerAs('app', () => ({
   secretKey: process.env.SECRET_KEY,
   exhangeRate: process.env.EXCHANGE_RATE_API,
   pythUrl: process.env.PYTH_SERVER,
+  adminWallet: process.env.ADMIN_WALLET,
+  adminWalletKey: process.env.ADMIN_PRIVATE,
 }));

@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ContractClient } from '../contract.client';
 import gatewayAbi from './abis/gateway.abi';
 import { ConfigService } from '@nestjs/config';
-import { AccountBalance, ProcessBillDto } from './dto/process-bill.dto';
+import { AccountBalance } from './dto/process-bill.dto';
 import {
   encodeFunctionData,
   erc20Abi,
@@ -11,20 +11,41 @@ import {
   parseEther,
   zeroAddress,
 } from 'viem';
-import { EvmWalletProvider, ViemWalletProvider } from '@coinbase/agentkit';
+import { ethers, Contract } from 'ethers';
+import { ViemWalletProvider } from '@coinbase/agentkit';
 import { TokenDocument } from '@/network/token/entities/token.entity';
 import { InitBill } from '@/bill/types/init-bill.type';
 import { to0xString } from '@/utils/helpers';
+import { ContractEvents } from '@/enums/contract.enum';
 
+export interface BlockchainEvent {
+  name: string;
+  args: any;
+  blockNumber: number;
+  transactionHash: string;
+}
 @Injectable()
 export class GatewayService {
+  private readonly logger = new Logger(GatewayService.name);
+
   private gateway: `0x${string}`;
+  private contract: ethers.Contract;
+  private provider: ethers.JsonRpcProvider;
+  private signer: ethers.Wallet;
 
   constructor(
     private client: ContractClient,
     private config: ConfigService,
   ) {
     this.gateway = this.config.get<`0x${string}`>('bc.gateway');
+    const rpcUrl = this.config.get<string>('app.rpc');
+    const adminKey = this.config.get<string>('app.adminWalletKey');
+
+    this.provider = new ethers.JsonRpcProvider(rpcUrl);
+    this.signer = new ethers.Wallet(adminKey, this.provider);
+    this.contract = new Contract(this.gateway, gatewayAbi, this.signer);
+
+    this.logger.log('*********BillCheap Service Initialized*********');
   }
 
   get geteway(): string {
@@ -98,4 +119,36 @@ export class GatewayService {
       ),
     );
   }
+
+  async getLatestBlockNumber(): Promise<number> {
+    return this.provider.getBlockNumber();
+  }
+
+  async getEvents(
+    fromBlock: number,
+    toBlock: number,
+  ): Promise<BlockchainEvent[]> {
+    const eventNames = [ContractEvents.BillProcessed];
+    const events: BlockchainEvent[] = [];
+
+    for (const eventName of eventNames) {
+      const filter = this.contract.filters[eventName]();
+      const rawEvents = await this.contract.queryFilter(
+        filter,
+        fromBlock,
+        toBlock,
+      );
+      events.push(
+        ...rawEvents.map((event: any) => ({
+          name: eventName,
+          args: event.args,
+          blockNumber: event.blockNumber,
+          transactionHash: event.transactionHash,
+        })),
+      );
+    }
+
+    return events;
+  }
+
 }

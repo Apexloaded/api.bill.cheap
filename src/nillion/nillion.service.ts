@@ -2,7 +2,6 @@ import {
   Injectable,
   NotFoundException,
   NotImplementedException,
-  OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OrgConfig, NillionNodes } from './types/org.type';
