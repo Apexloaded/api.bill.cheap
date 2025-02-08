@@ -1,5 +1,11 @@
 {
-  "ProxyModule#Gateway": "0xfF86402F070441233347ca511305EDDaE916B074",
-  "ProxyModule#TransparentUpgradeableProxy": "0x1c5870DcA9b72c0FA1D249a9F6De226f0B1F84Bc",
-  "ProxyModule#ProxyAdmin": "0xABA31edBBb00aF443d38B30D931326e50b3ECe01"
+  "DeployModule#BillcheapTether": "0x022195ff75613c78D7B380e79378563f76F1A8B6",
+  "DeployModule#BillcheapToken": "0xa1c19354e81865E240c9d3Ed63744489e57d5c6c",
+  "DeployModule#BillcheapUSDCoin": "0x1B85DE30D9692de27475B178Aa0b5A2C2EdbDDf8",
+  "DeployModule#Gateway": "0x299C0c723cA94B187d3A8308a9B2D9D4f9e20De2",
+  "DeployModule#ProxyAdmin": "0x9dC8dBC3e2C9b2e3199b308aD3529f3960eFB2c2",
+  "DeployModule#BCTProxy": "0x2Cc63cc30D22613d92402c91A8eB18E0502c8Ffa",
+  "DeployModule#BUSDCProxy": "0x65438c017Afc22bd479750417CB230e2E0E056CC",
+  "DeployModule#BUSDTProxy": "0x1EA0b72E3c2e24f7e125Db3dbc106d2179346Ee3",
+  "DeployModule#GatewayProxy": "0x95BF6D376BD12Dffd8B5c26338C104B93b2aD4A5"
 }

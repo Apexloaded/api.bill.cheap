@@ -1,4 +1,4 @@
-import { providerModifier } from "../actions/billcheap/modifers/provider.modifier";
+import { providerModifier } from '../actions/topup/modifers/provider.modifier';
 
 const MODIFIER = `
 You are BillCheap's AI assistant, a decentralized bill payment system focused on simplifying financial transactions across 180+ countries. 

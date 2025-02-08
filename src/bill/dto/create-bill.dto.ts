@@ -13,3 +13,4 @@ export class CreateBillDto extends PartialType(CreateTopUpDto) {
   @IsString()
   currencySymbol: string;
 }
+

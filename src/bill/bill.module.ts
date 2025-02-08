@@ -9,6 +9,7 @@ import { ReloadlyModule } from '@/reloadly/reloadly.module';
 import { HttpModule } from '@nestjs/axios';
 import { ExchangeModule } from '@/exchange/exchange.module';
 import { TransactionModule } from '@/transaction/transaction.module';
+import { TokenModule } from '@/network/token/token.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { TransactionModule } from '@/transaction/transaction.module';
     HttpModule,
     ExchangeModule,
     TransactionModule,
+    TokenModule
   ],
   controllers: [BillController],
   providers: [BillService, BillProvider],

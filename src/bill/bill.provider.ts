@@ -11,6 +11,7 @@ import {
   generateId,
   generateUniqueRandomArray,
   getPercentage,
+  to0xString,
 } from '@/utils/helpers';
 import { BillService } from './bill.service';
 import { User } from '@/user/entities/user.entity';
@@ -25,6 +26,8 @@ import {
 } from '@/transaction/entities/transaction.entity';
 import { toHex } from 'viem';
 import { ContractBillType, ContractTxType } from '@/enums/contract.enum';
+import { TokenService } from '@/network/token/token.service';
+import { InitBill } from './types/init-bill.type';
 
 @Injectable()
 export class BillProvider {
@@ -39,6 +42,7 @@ export class BillProvider {
     private topUpService: TopUpService,
     private exchangeService: ExchangeService,
     private txService: TransactionService,
+    private tokenService: TokenService,
   ) {}
 
   async autoDetectProvider(phone: string, iso: string) {
@@ -157,7 +161,7 @@ export class BillProvider {
     return operators;
   }
 
-  async generateBillTransaction(payload: CreateBillDto) {
+  async generateBillTransaction(payload: CreateBillDto): Promise<InitBill> {
     try {
       const {
         userId,
@@ -172,15 +176,24 @@ export class BillProvider {
         currencySymbol,
       } = payload;
 
-      const { rate, base, target } = await this.exchangeService.getExchangeRate(
+      const selectedToken = await this.tokenService.findOne({
+        address: { $regex: token, $options: 'i' },
+      });
+
+      if (!selectedToken) {
+        throw new Error('Invalid token address.');
+      }
+
+      const usdValue = await this.verifyBalance(
+        amount,
         currencySymbol.toUpperCase(),
-        'USD',
       );
-      const feePerc = getPercentage(rate.conversion_rate, 0.5);
-      const usdValue = (feePerc + rate.conversion_rate) * Number(amount);
+      const [cryptoRate] = await this.exchangeService.getCryptoUsdRates([
+        selectedToken.aggregator,
+      ]);
+      const cryptoValue = usdValue / parseFloat(cryptoRate.currentPrice);
 
       const customIdentifier = generateId({ length: 16 });
-
       const billPayload = {
         user: userId as unknown as User,
         billType: billType,
@@ -230,12 +243,36 @@ export class BillProvider {
         tokenAddress: token,
         transactionType: ContractTxType.BillPayment,
         providerId: toHex(provider),
+        cryptoValue,
       };
       return response;
     } catch (error) {
       console.error('Error generating bill transaction:', error);
       throw new Error('Failed to generate bill transaction.');
     }
+  }
+
+  async listPaymentTokens(address: string) {
+    const tokens = await this.tokenService.queryBalance(to0xString(address));
+    return tokens.map((t) => {
+      return {
+        address: t.address,
+        balanceInEth: t.balance,
+        balanceInUsd: t.usdValue,
+        name: t.name,
+        symbol: t.symbol,
+      };
+    });
+  }
+
+  async verifyBalance(amount: string, currency) {
+    const { rate } = await this.exchangeService.getExchangeRate(
+      currency.toUpperCase(),
+      'USD',
+    );
+    const feePerc = getPercentage(rate.conversion_rate, 0.5);
+    const usdValue = (feePerc + rate.conversion_rate) * parseFloat(amount);
+    return usdValue;
   }
 
   suggestedAmounts() {

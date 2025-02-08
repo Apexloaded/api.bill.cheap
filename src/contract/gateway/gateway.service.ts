@@ -1,10 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { ContractClient } from '../contract.client';
-import processBillAbi from './abis/processBill.abi';
+import gatewayAbi from './abis/gateway.abi';
 import { ConfigService } from '@nestjs/config';
-import { ProcessBillDto } from './dto/process-bill.dto';
-import { encodeFunctionData, parseEther } from 'viem';
+import { AccountBalance, ProcessBillDto } from './dto/process-bill.dto';
+import {
+  encodeFunctionData,
+  erc20Abi,
+  formatEther,
+  Hex,
+  parseEther,
+  zeroAddress,
+} from 'viem';
 import { EvmWalletProvider, ViemWalletProvider } from '@coinbase/agentkit';
+import { TokenDocument } from '@/network/token/entities/token.entity';
+import { InitBill } from '@/bill/types/init-bill.type';
+import { to0xString } from '@/utils/helpers';
 
 @Injectable()
 export class GatewayService {
@@ -17,33 +27,75 @@ export class GatewayService {
     this.gateway = this.config.get<`0x${string}`>('bc.gateway');
   }
 
-  async processBill(wallet: EvmWalletProvider, payload: ProcessBillDto) {
-    const {
-      amount,
-      externalTxId,
-      billId,
-      providerId,
-      tokenAddress,
-      txType,
-      billType,
-    } = payload;
-    const hash = await wallet.sendTransaction({
-      to: this.gateway,
+  get geteway(): string {
+    return this.gateway;
+  }
+
+  async processBill(walletProvider: ViemWalletProvider, tx: InitBill) {
+    const isNativeToken = tx.tokenAddress === zeroAddress;
+    if (!isNativeToken) {
+      const approvalHash = await walletProvider.sendTransaction({
+        to: tx.tokenAddress as Hex,
+        data: encodeFunctionData({
+          abi: erc20Abi,
+          functionName: 'approve',
+          args: [this.gateway as Hex, parseEther(`${tx.cryptoValue}`)],
+        }),
+      });
+      await walletProvider.waitForTransactionReceipt(approvalHash);
+    }
+
+    const hash = await walletProvider.sendTransaction({
+      to: this.gateway as Hex,
       data: encodeFunctionData({
-        abi: processBillAbi,
+        abi: gatewayAbi,
         functionName: 'processBill',
         args: [
-          amount,
-          externalTxId,
-          billId,
-          providerId,
-          tokenAddress,
-          txType,
-          billType,
+          parseEther(`${tx.cryptoValue}`),
+          to0xString(tx.transactionId),
+          to0xString(tx.billId),
+          to0xString(tx.providerId),
+          to0xString(tx.tokenAddress),
+          tx.transactionType,
+          tx.billType,
         ],
       }),
-      value: amount,
+      ...(isNativeToken && { value: parseEther(`${tx.cryptoValue}`) }),
     });
-    return await wallet.waitForTransactionReceipt(hash);
+    await walletProvider.waitForTransactionReceipt(hash);
+    return `Success Transaction ${hash}`;
+  }
+
+  getAccountBalance(
+    tokens: TokenDocument[],
+    address: `0x${string}`,
+  ): Promise<AccountBalance[]> {
+    return Promise.all(
+      tokens.map(
+        async ({ address: tokenAddress, name, symbol, icon, aggregator }) => {
+          let balance: bigint;
+          if (tokenAddress === zeroAddress) {
+            balance = await this.client
+              .getPublicClient()
+              .getBalance({ address });
+          } else {
+            balance = await this.client.getPublicClient().readContract({
+              address: tokenAddress as Hex,
+              abi: erc20Abi,
+              functionName: 'balanceOf',
+              args: [address],
+            });
+          }
+          return {
+            name,
+            symbol,
+            icon,
+            balance: formatEther(balance),
+            address: tokenAddress,
+            aggregator,
+          };
+        },
+      ),
+    );
   }
 }

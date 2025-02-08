@@ -7,5 +7,6 @@ import { ContractModule } from '../contract.module';
   imports: [forwardRef(() => ContractModule)],
   controllers: [GatewayController],
   providers: [GatewayService],
+  exports: [GatewayService]
 })
 export class GatewayModule {}

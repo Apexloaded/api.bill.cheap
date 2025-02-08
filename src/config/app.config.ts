@@ -9,4 +9,5 @@ export default registerAs('app', () => ({
   encryptionKey: process.env.ENCRYPTION_KEY,
   secretKey: process.env.SECRET_KEY,
   exhangeRate: process.env.EXCHANGE_RATE_API,
+  pythUrl: process.env.PYTH_SERVER,
 }));

@@ -45,8 +45,7 @@ contract Gateway is Base {
         _disableInitializers();
     }
 
-    function init_gateway(address admin) public initializer {
-        __AccessControl_init();
+    function initialize(address admin) public initializer {
         init_base_app(admin);
         _grantRole(MODERATOR_ROLE, admin);
         _enlistedTokens[address(0)] = true;

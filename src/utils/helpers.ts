@@ -10,7 +10,7 @@ export const getProtocol = (url: string) => {
 export const isDev = process.env.NODE_ENV === 'development';
 export const isProd = process.env.NODE_ENV === 'production';
 export const isDebug = process.env.NODE_ENV === 'debugging';
-export const getAppChain = isDev ? baseSepolia : base;
+export const getAppChain = baseSepolia;
 export const getChainName = isDev
   ? getAppChain['network']
   : base.name.toLowerCase();
@@ -103,4 +103,8 @@ export function generateUniqueRandomArray(
 
   // Convert the set to an array and sort it in ascending order
   return Array.from(randomSet).sort((a, b) => a - b);
+}
+
+export function stringify(data: any) {
+  return JSON.stringify(data, null, 2);
 }

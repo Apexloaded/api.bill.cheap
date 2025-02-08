@@ -29,7 +29,8 @@ import { BillModule } from './bill/bill.module';
 import { ExchangeModule } from './exchange/exchange.module';
 import { TransactionModule } from './transaction/transaction.module';
 import { NetworkModule } from './network/network.module';
-
+import contractConfig from './config/contract.config';
+import { GatewayModule } from './contract/gateway/gateway.module';
 
 @Module({
   imports: [
@@ -54,7 +55,7 @@ import { NetworkModule } from './network/network.module';
     }),
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, cdpConfig, openaiConfig, tgConfig],
+      load: [appConfig, cdpConfig, openaiConfig, tgConfig, contractConfig],
       envFilePath: ['.env.local'],
     }),
     TelegrafModule.forRootAsync({
@@ -88,6 +89,7 @@ import { NetworkModule } from './network/network.module';
     ExchangeModule,
     TransactionModule,
     NetworkModule,
+    GatewayModule
   ],
   controllers: [AppController],
   providers: [

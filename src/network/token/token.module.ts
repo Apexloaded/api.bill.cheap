@@ -4,6 +4,7 @@ import { TokenController } from './token.controller';
 import { ContractModule } from '@/contract/contract.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Token, TokenSchema } from './entities/token.entity';
+import { ExchangeModule } from '@/exchange/exchange.module';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { Token, TokenSchema } from './entities/token.entity';
       { name: Token.name, schema: TokenSchema },
     ]),
     ContractModule,
+    ExchangeModule
   ],
   controllers: [TokenController],
   providers: [TokenService],

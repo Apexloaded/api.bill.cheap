@@ -28,8 +28,9 @@ contract Base is
      * @notice Initialize function
      * @param _admin The address of the administrator
      */
-    function init_base_app(address _admin) public onlyInitializing {
+    function init_base_app(address _admin) public initializer {
         __AccessControl_init();
+        __ReentrancyGuard_init();
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
     }
 

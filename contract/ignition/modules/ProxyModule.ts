@@ -5,6 +5,7 @@ const ProxyModule = buildModule('ProxyModule', (m) => {
   const initializeArgs = [owner];
 
   const gateway = m.contract('Gateway');
+
   const initializeData = m.encodeFunctionCall(
     gateway,
     'init_gateway',
