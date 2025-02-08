@@ -31,6 +31,8 @@ import { TransactionModule } from './transaction/transaction.module';
 import { NetworkModule } from './network/network.module';
 import contractConfig from './config/contract.config';
 import { GatewayModule } from './contract/gateway/gateway.module';
+import { NillionModule } from './nillion/nillion.module';
+import nillionConfig from './config/nillion.config';
 
 @Module({
   imports: [
@@ -55,7 +57,14 @@ import { GatewayModule } from './contract/gateway/gateway.module';
     }),
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, cdpConfig, openaiConfig, tgConfig, contractConfig],
+      load: [
+        appConfig,
+        cdpConfig,
+        openaiConfig,
+        tgConfig,
+        contractConfig,
+        nillionConfig,
+      ],
       envFilePath: ['.env.local'],
     }),
     TelegrafModule.forRootAsync({
@@ -89,7 +98,8 @@ import { GatewayModule } from './contract/gateway/gateway.module';
     ExchangeModule,
     TransactionModule,
     NetworkModule,
-    GatewayModule
+    GatewayModule,
+    NillionModule,
   ],
   controllers: [AppController],
   providers: [

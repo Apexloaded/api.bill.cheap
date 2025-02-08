@@ -41,10 +41,6 @@ export class User {
 
   @Prop({ select: false })
   @Exclude()
-  salt: string;
-
-  @Prop({ select: false })
-  @Exclude()
   password: string;
 
   @Prop({ lowercase: true })

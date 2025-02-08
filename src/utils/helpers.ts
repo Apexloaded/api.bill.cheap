@@ -20,12 +20,14 @@ export function to0xString(value: string) {
 }
 
 export const generateId = ({
+  isUUID = false,
   length = 6,
   ...prop
-}: Partial<ShortUniqueId.ShortUniqueIdOptions>) => {
+}: Partial<ShortUniqueId.ShortUniqueIdOptions> & { isUUID?: boolean }) => {
   const uid = new ShortUniqueId({ length, ...prop });
-  return uid.randomUUID();
+  return isUUID ? uid.stamp(32) : uid.randomUUID();
 };
+
 export function getPercentage(from: number, percentage: number): number {
   const perc = (from * percentage) / 100;
   return perc;

@@ -1,4 +1,5 @@
 import { AgentKitService } from '@/agent-kit/agent-kit.service';
+import { NillionService } from '@/nillion/nillion.service';
 import { UserService } from '@/user/user.service';
 import { decodeString, encodeString } from '@/utils/encrypt';
 import { generateId } from '@/utils/helpers';
@@ -16,6 +17,7 @@ export class BotService {
     private config: ConfigService,
     private walletService: WalletService,
     private readonly agentKit: AgentKitService,
+    private nillion: NillionService,
   ) {
     this.encryptionKey = this.config.get<string>('app.encryptionKey');
   }
@@ -36,13 +38,13 @@ export class BotService {
       referralCode,
     });
 
+    await this.nillion.addData({ wallet: wallet.address.toLowerCase(), salt });
     return await this.userService.findOneOrCreate(
       {
         telegramId: userCtx.id,
       },
       {
         billId,
-        salt,
         referralCode,
         billName: userCtx.username,
         firstName: userCtx.first_name,
