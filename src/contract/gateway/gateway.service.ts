@@ -150,5 +150,4 @@ export class GatewayService {
 
     return events;
   }
-
 }

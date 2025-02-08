@@ -10,6 +10,7 @@ import { HttpModule } from '@nestjs/axios';
 import { ExchangeModule } from '@/exchange/exchange.module';
 import { TransactionModule } from '@/transaction/transaction.module';
 import { TokenModule } from '@/network/token/token.module';
+import { BillProcessor } from './bill.processor';
 
 @Module({
   imports: [
@@ -22,7 +23,7 @@ import { TokenModule } from '@/network/token/token.module';
     TokenModule
   ],
   controllers: [BillController],
-  providers: [BillService, BillProvider],
-  exports: [BillProvider, BillService],
+  providers: [BillService, BillProvider, BillProcessor],
+  exports: [BillProvider, BillService, BillProcessor],
 })
 export class BillModule {}

@@ -3,7 +3,7 @@ import { CreateTopUpDto } from './dto/create-topup.dto';
 import { UpdateTopUpDto } from './dto/update-topup.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { TopUp } from './entities/topup.entity';
-import { Model } from 'mongoose';
+import { FilterQuery, Model } from 'mongoose';
 
 @Injectable()
 export class TopUpService {
@@ -12,12 +12,12 @@ export class TopUpService {
     return this.model.create(payload);
   }
 
-  findAll() {
-    return `This action returns all airtime`;
+  findAll(filter: FilterQuery<TopUp>) {
+    return this.model.find(filter);
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} airtime`;
+  findOne(filter: FilterQuery<TopUp>) {
+    return this.model.findOne(filter);
   }
 
   update(id: number, updateAirtimeDto: UpdateTopUpDto) {

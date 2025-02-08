@@ -5,6 +5,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { TopUp, TopUpSchema } from './entities/topup.entity';
 import { ReloadlyModule } from '@/reloadly/reloadly.module';
 import { HttpModule } from '@nestjs/axios';
+import { TopUpProcessor } from './topup.processor';
 
 @Module({
   imports: [
@@ -13,7 +14,7 @@ import { HttpModule } from '@nestjs/axios';
     HttpModule,
   ],
   controllers: [TopUpController],
-  providers: [TopUpService],
-  exports: [TopUpService],
+  providers: [TopUpService, TopUpProcessor],
+  exports: [TopUpService, TopUpProcessor],
 })
 export class TopUpModule {}

@@ -22,12 +22,12 @@ export class TopUpController {
 
   @Get()
   findAll() {
-    return this.topUpService.findAll();
+    // return this.topUpService.findAll();
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.topUpService.findOne(+id);
+    //return this.topUpService.findOne(+id);
   }
 
   @Patch(':id')

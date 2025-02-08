@@ -3,7 +3,7 @@ import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Transaction } from './entities/transaction.entity';
-import { Model } from 'mongoose';
+import { FilterQuery, Model } from 'mongoose';
 
 @Injectable()
 export class TransactionService {
@@ -18,12 +18,12 @@ export class TransactionService {
     return `This action returns all transaction`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} transaction`;
+  findOne(filter: FilterQuery<Transaction>) {
+    return this.model.findOne(filter);
   }
 
-  update(id: number, updateTransactionDto: UpdateTransactionDto) {
-    return `This action updates a #${id} transaction`;
+  update(filter: FilterQuery<Transaction>, update: Partial<Transaction>) {
+    return this.model.findOneAndUpdate(filter, update);
   }
 
   remove(id: number) {

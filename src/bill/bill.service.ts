@@ -3,28 +3,20 @@ import { CreateBillDto } from './dto/create-bill.dto';
 import { UpdateBillDto } from './dto/update-bill.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Bill } from './entities/bill.entity';
-import { Model } from 'mongoose';
+import { FilterQuery, Model } from 'mongoose';
 
 @Injectable()
 export class BillService {
   constructor(@InjectModel(Bill.name) private model: Model<Bill>) {}
   create(payload: Partial<Bill>) {
-    return this.model.create(payload);;
+    return this.model.create(payload);
   }
 
-  findAll() {
-    return `This action returns all bill`;
+  async findOne(filter: FilterQuery<Bill>) {
+    return await this.model.findOne(filter);
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} bill`;
-  }
-
-  update(id: number, updateBillDto: UpdateBillDto) {
-    return `This action updates a #${id} bill`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} bill`;
+  async updateOne(filter: FilterQuery<Bill>, update: Partial<Bill>) {
+    return await this.model.findOneAndUpdate(filter, update);
   }
 }
