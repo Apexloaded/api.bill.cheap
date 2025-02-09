@@ -1,11 +1,12 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { BillStatus, BillType } from './entities/bill.entity';
 import { BlockchainEvent } from '@/contract/gateway/gateway.service';
 import { fromHex } from 'viem';
 import { BillService } from './bill.service';
 import { TransactionService } from '@/transaction/transaction.service';
 import { TxStatus } from '@/transaction/entities/transaction.entity';
-import { TopUpProcessor } from './topup/topup.processor';
+import { TopUpProvider } from './topup/topup.provider';
+import { UtilityProvider } from './utility/utility.provider';
 
 @Injectable()
 export class BillProcessor {
@@ -13,7 +14,8 @@ export class BillProcessor {
 
   constructor(
     private readonly billService: BillService,
-    private readonly topUpProcessor: TopUpProcessor,
+    private readonly topUpProvider: TopUpProvider,
+    private readonly utilityProvider: UtilityProvider,
     private readonly txService: TransactionService,
   ) {}
 
@@ -27,37 +29,80 @@ export class BillProcessor {
 
     if (!bill || !transaction) return;
 
-    if (
-      bill.billType === BillType.AIRTIME ||
-      bill.billType === BillType.MOBILE_DATA
-    ) {
+    let status: BillStatus;
+    let transactionId: number;
+
+    if ([BillType.AIRTIME, BillType.MOBILE_DATA].includes(bill.billType)) {
       try {
-        const topupResponse = await this.topUpProcessor.processTopUp(
+        const topupResponse = await this.topUpProvider.processTopUp(
           unHashedBillId,
           bill.useLocalAmount,
         );
-
-        const [billsUpdate, txUpdate] = await Promise.all([
-          this.billService.updateOne(
-            { _id: unHashedBillId },
-            {
-              status: topupResponse.status,
-              billExternalId: topupResponse.transaction.transactionId,
-            },
-          ),
-          this.txService.update(
-            { _id: unHashedTransactionId },
-            {
-              hash: event.transactionHash,
-              status: TxStatus.SUCCESSFUL,
-              onChainTxId: id,
-              senderAddress: from,
-            },
-          ),
-        ]);
+        status = topupResponse.status;
+        transactionId = topupResponse.transaction.transactionId;
       } catch (error) {
-        this.logger.error('Error processing airtime bill', error);
+        this.logger.error('Error processing topup bill', error);
       }
     }
+
+    if (
+      [
+        BillType.CABLE_TV,
+        BillType.ELECTRICITY,
+        BillType.INTERNET,
+        BillType.WATER,
+      ].includes(bill.billType)
+    ) {
+      try {
+        const { body, status: txStatus } =
+          await this.utilityProvider.processTopUp(
+            unHashedBillId,
+            bill.useLocalAmount,
+          );
+        status = body.status;
+        transactionId = body.id;
+      } catch (error) {
+        this.logger.error('Error processing utility bill', error);
+      }
+    }
+
+    await this.updateTransaction(
+      unHashedBillId,
+      status,
+      transactionId,
+      unHashedTransactionId,
+      TxStatus.SUCCESSFUL,
+      id,
+      from,
+    );
+  }
+
+  async updateTransaction(
+    billId: string,
+    status: BillStatus,
+    billExternalId: number,
+    txId: string,
+    txHash: string,
+    onChainId: string,
+    from: string,
+  ) {
+    const [billsUpdate, txUpdate] = await Promise.all([
+      this.billService.updateOne(
+        { _id: billId },
+        {
+          status: status,
+          billExternalId,
+        },
+      ),
+      this.txService.update(
+        { _id: txId },
+        {
+          hash: txHash,
+          status: TxStatus.SUCCESSFUL,
+          onChainTxId: onChainId,
+          senderAddress: from,
+        },
+      ),
+    ]);
   }
 }

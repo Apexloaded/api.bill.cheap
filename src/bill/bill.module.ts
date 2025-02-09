@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { BillService } from './bill.service';
 import { BillController } from './bill.controller';
 import { TopUpModule } from './topup/topup.module';
@@ -11,16 +11,18 @@ import { ExchangeModule } from '@/exchange/exchange.module';
 import { TransactionModule } from '@/transaction/transaction.module';
 import { TokenModule } from '@/network/token/token.module';
 import { BillProcessor } from './bill.processor';
+import { UtilityModule } from './utility/utility.module';
 
 @Module({
   imports: [
-    TopUpModule,
+    forwardRef(() => TopUpModule),
     MongooseModule.forFeature([{ name: Bill.name, schema: BillSchema }]),
     ReloadlyModule,
     HttpModule,
     ExchangeModule,
     TransactionModule,
-    TokenModule
+    TokenModule,
+    UtilityModule
   ],
   controllers: [BillController],
   providers: [BillService, BillProvider, BillProcessor],

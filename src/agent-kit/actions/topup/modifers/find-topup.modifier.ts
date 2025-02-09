@@ -1,5 +1,5 @@
 export const findTopUpModifier = `
-    Retrieves a list of available operators for a given country or service type.
+    Retrieves a list of available topup operators for a given country or service type.
 
     Required:
     - providerName: Network operator name (Return '' if not provided).

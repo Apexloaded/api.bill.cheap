@@ -23,6 +23,9 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { createWalletClient, Hex, http } from 'viem';
 import { getAppChain } from '@/utils/helpers';
 import { GatewayService } from '@/contract/gateway/gateway.service';
+import { bcUtitliyActionProvider } from './actions/utility/utility.action';
+import { UtilityProvider } from '@/bill/utility/utility.provider';
+import { TopUpProvider } from '@/bill/topup/topup.provider';
 
 export type ReactAgent<
   A extends AnnotationRoot<any> = AnnotationRoot<{}>,
@@ -42,8 +45,10 @@ export class AgentKitService {
   constructor(
     private readonly config: ConfigService,
     private readonly walletService: WalletService,
-    private billProvider: BillProvider,
+    private topUpProvider: TopUpProvider,
     private gateway: GatewayService,
+    private utitliyProvider: UtilityProvider,
+    private billProvider: BillProvider,
   ) {
     this.configKeys = {
       apiName: this.config.get('cdp.apiName'),
@@ -85,8 +90,15 @@ export class AgentKitService {
         erc20ActionProvider(),
         billcheapTopupActionProvider({
           userId: user_id,
-          billProvider: this.billProvider,
+          provider: this.topUpProvider,
           gateway: this.gateway,
+          billProvider: this.billProvider,
+        }),
+        bcUtitliyActionProvider({
+          userId: user_id,
+          provider: this.utitliyProvider,
+          gateway: this.gateway,
+          billProvider: this.billProvider,
         }),
       ],
     });

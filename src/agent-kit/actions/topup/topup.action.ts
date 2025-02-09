@@ -9,38 +9,27 @@ import { z } from 'zod';
 import { TopUpBillSchema } from './schemas/process-bill.schema';
 import { BillProvider } from '@/bill/bill.provider';
 import { BillType } from '@/bill/entities/bill.entity';
-import { Provider, SelectProvider } from '@/bill/types/provider.type';
-import { BillcheapActionProviderConfig } from './topup.types';
 import {
-  determineAmountCurrency,
-  formatProvidersToAgentsData,
-  formatSingleProvider,
-  stringify,
-  to0xString,
-} from '@/utils/helpers';
+  TopUpOperator,
+  SelectTopUpProvider,
+} from '@/bill/topup/types/topup-operator.type';
+import { BillcheapActionProviderConfig } from './topup.types';
+import { stringify } from '@/utils/helpers';
 import { GatewayService } from '@/contract/gateway/gateway.service';
 import { proccessTopUpModifier } from './modifers/process-topup.modifier';
 import { LRUCache } from 'lru-cache';
-import {
-  encodeFunctionData,
-  erc20Abi,
-  Hex,
-  isAddress,
-  parseEther,
-  zeroAddress,
-} from 'viem';
-import gatewayAbi from '@/contract/gateway/abis/gateway.abi';
+import { isAddress } from 'viem';
 import { findTopUpModifier } from './modifers/find-topup.modifier';
-import { invalidAddressModifier } from './modifers/invalid-address.modifier';
+import { invalidAddressModifier } from '../../modifiers/invalid-address.modifier';
 import { insufficientBalanceModifier } from './modifers/insufficient-balance.modifier';
-import { InitBill } from '@/bill/types/init-bill.type';
+import { TopUpProvider } from '@/bill/topup/topup.provider';
 
 export class BillcheapTopUpActionProvider extends ActionProvider<EvmWalletProvider> {
-  private multiCacheInit = new LRUCache<string, Provider[]>({
+  private multiCacheInit = new LRUCache<string, TopUpOperator[]>({
     max: 100,
     ttl: 10 * 60 * 1000, // 10 minutes
   });
-  private singleCacheInit = new LRUCache<string, Provider>({
+  private singleCacheInit = new LRUCache<string, TopUpOperator>({
     max: 100,
     ttl: 10 * 60 * 1000, // 10 minutes
   });
@@ -50,9 +39,10 @@ export class BillcheapTopUpActionProvider extends ActionProvider<EvmWalletProvid
 
   private handler: Record<
     string,
-    (data: SelectProvider) => { selectedProvider: Provider[] }
+    (data: SelectTopUpProvider) => { selectedProvider: TopUpOperator[] }
   >;
   private gateway: GatewayService;
+  private provider: TopUpProvider;
   private billProvider: BillProvider;
 
   private userId: string;
@@ -61,11 +51,12 @@ export class BillcheapTopUpActionProvider extends ActionProvider<EvmWalletProvid
     super('billcheap', []);
 
     this.userId = config.userId;
+    this.provider = config.provider;
     this.billProvider = config.billProvider;
     this.gateway = config.gateway;
     this.handler = {
-      [BillType.AIRTIME]: this.billProvider.selectAirtimeProvider,
-      [BillType.MOBILE_DATA]: this.billProvider.selectMobileDataProvider,
+      [BillType.AIRTIME]: this.provider.selectAirtimeProvider,
+      [BillType.MOBILE_DATA]: this.provider.selectMobileDataProvider,
     };
   }
 
@@ -145,13 +136,14 @@ export class BillcheapTopUpActionProvider extends ActionProvider<EvmWalletProvid
 
       const autoDetectProvider = cachedAutoDetect
         ? cachedAutoDetect
-        : await this.billProvider.autoDetectProvider(
+        : await this.provider.autoDetectProvider(
             args.phoneNumber,
             args.isoCode.toUpperCase(),
           );
 
       if (autoDetectProvider) {
-        const formattedProvider = formatSingleProvider(autoDetectProvider);
+        const formattedProvider =
+          this.provider.formatSingleProvider(autoDetectProvider);
         if (billType === BillType.AIRTIME) {
           args.providerName = formattedProvider.name;
           args.providerId = formattedProvider.id;
@@ -187,7 +179,7 @@ export class BillcheapTopUpActionProvider extends ActionProvider<EvmWalletProvid
 
       const validProviders = selectedProvider.filter((provider) => {
         const amountNum = Number(amount);
-        const currencyType = determineAmountCurrency(
+        const currencyType = this.provider.determineAmountCurrency(
           provider,
           amountNum,
           isForeignTx,
@@ -202,7 +194,7 @@ export class BillcheapTopUpActionProvider extends ActionProvider<EvmWalletProvid
 
       // Check if the token is available in the account balance
 
-      const amountCurrencyType = determineAmountCurrency(
+      const amountCurrencyType = this.provider.determineAmountCurrency(
         bestProvider,
         Number(amount),
         isForeignTx,
@@ -223,8 +215,8 @@ export class BillcheapTopUpActionProvider extends ActionProvider<EvmWalletProvid
     let providers = this.isoCacheMemory.get(isoCacheKey) ?? [];
 
     if (!providers.length) {
-      providers = formatProvidersToAgentsData(
-        await this.billProvider.listProvidersByISO(
+      providers = this.provider.formatProvidersToAgentsData(
+        await this.provider.listProvidersByISO(
           isoCode.toUpperCase(),
           true,
           true,
@@ -241,7 +233,7 @@ export class BillcheapTopUpActionProvider extends ActionProvider<EvmWalletProvid
   private async executeTransaction(
     walletProvider: ViemWalletProvider,
     args: z.infer<typeof TopUpBillSchema>,
-    provider: Provider,
+    provider: TopUpOperator,
   ) {
     const { amount, tokenAddress } = args;
     const accountBalance = await this.billProvider.listPaymentTokens(
@@ -290,45 +282,6 @@ export class BillcheapTopUpActionProvider extends ActionProvider<EvmWalletProvid
     });
 
     return await this.gateway.processBill(walletProvider, tx);
-  }
-
-  private async processPayment(
-    walletProvider: ViemWalletProvider,
-    tx: InitBill,
-  ) {
-    const contract = this.gateway.geteway;
-    const isNativeToken = tx.tokenAddress === zeroAddress;
-    if (!isNativeToken) {
-      const approvalHash = await walletProvider.sendTransaction({
-        to: tx.tokenAddress as Hex,
-        data: encodeFunctionData({
-          abi: erc20Abi,
-          functionName: 'approve',
-          args: [contract as Hex, parseEther(`${tx.cryptoValue}`)],
-        }),
-      });
-      await walletProvider.waitForTransactionReceipt(approvalHash);
-    }
-
-    const hash = await walletProvider.sendTransaction({
-      to: contract as Hex,
-      data: encodeFunctionData({
-        abi: gatewayAbi,
-        functionName: 'processBill',
-        args: [
-          parseEther(`${tx.cryptoValue}`),
-          to0xString(tx.transactionId),
-          to0xString(tx.billId),
-          to0xString(tx.providerId),
-          to0xString(tx.tokenAddress),
-          tx.transactionType,
-          tx.billType,
-        ],
-      }),
-      ...(isNativeToken && { value: parseEther(`${tx.cryptoValue}`) }),
-    });
-    await walletProvider.waitForTransactionReceipt(hash);
-    return `Success Transaction ${hash}`;
   }
 
   supportsNetwork(_: Network): boolean {

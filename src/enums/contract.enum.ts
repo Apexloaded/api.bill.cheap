@@ -3,6 +3,8 @@ export enum ContractBillType {
   ELECTRICITY,
   CABLE_TV,
   MOBILE_DATA,
+  WATER,
+  INTERNET,
 }
 
 export enum ContractTxType {

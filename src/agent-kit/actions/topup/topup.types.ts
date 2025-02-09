@@ -1,9 +1,6 @@
-import { BillProvider } from "@/bill/bill.provider";
-import { GatewayService } from "@/contract/gateway/gateway.service";
+import { BaseBillCheapAction } from '@/agent-kit/interfaces/agent-kit.interface';
+import { TopUpProvider } from '@/bill/topup/topup.provider';
 
-export interface BillcheapActionProviderConfig {
-    wallet?: string;
-  userId?: string;
-  billProvider?: BillProvider;
-  gateway?: GatewayService;
+export interface BillcheapActionProviderConfig extends BaseBillCheapAction {
+  provider?: TopUpProvider;
 }

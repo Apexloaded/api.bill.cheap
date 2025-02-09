@@ -20,18 +20,17 @@ export class ReloadlyService {
   }
 
   async accountBalance() {
-    const url = this.getUrl(AudienceType.Airtime, reloadlyPath.accountBalance);
-    return await this.getApi(url, AudienceType.Airtime);
+    const url = this.getUrl(AudienceType.Topups, reloadlyPath.accountBalance);
+    return await this.getApi(url, AudienceType.Topups);
   }
 
   async getApi<T>(url: string, key: AudienceType, config?: AxiosRequestConfig) {
     const accessToken = await this.reloadlyAuthService.ensureValidToken(key);
     const { data } = await firstValueFrom(
-      this.httpService.get(url, accessToken, config).pipe(
+      this.httpService.get(url, accessToken, key, config).pipe(
         map((response: AxiosResponse<T>) => response),
         catchError((error: AxiosError) => {
-          console.log('Reloadly Error', error);
-          //console.error('Error:', error.response);
+          console.error('Error:', error);
           if (error.response?.status === 401) {
             return throwError(
               () => new UnauthorizedException(error.response.statusText),
@@ -52,7 +51,7 @@ export class ReloadlyService {
   ) {
     const accessToken = await this.reloadlyAuthService.ensureValidToken(key);
     const { data } = await firstValueFrom(
-      this.httpService.post(url, payload, accessToken, config).pipe(
+      this.httpService.post(url, payload, accessToken, key, config).pipe(
         map((response: AxiosResponse<Res>) => response),
         catchError((error: AxiosError) => {
           console.error('Error:', error.response);

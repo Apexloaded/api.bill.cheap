@@ -1,10 +1,6 @@
 import { BillType } from '@/bill/entities/bill.entity';
 import { z } from 'zod';
 
-export enum Mode {
-  GET = 'GET',
-  POST = 'POST',
-}
 export const TopUpBillSchema = z.object({
   amount: z.string().describe('The amount to pay'),
   billType: z.enum([BillType.AIRTIME, BillType.MOBILE_DATA]),
@@ -18,5 +14,4 @@ export const TopUpBillSchema = z.object({
   isLocal: z.boolean(),
   pin: z.boolean().default(true),
   isForeignTx: z.boolean(),
-  mode: z.enum([Mode.GET, Mode.POST]),
 });

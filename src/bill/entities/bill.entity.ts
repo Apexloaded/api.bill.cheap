@@ -15,6 +15,8 @@ export enum BillType {
   ELECTRICITY = 'ELECTRICITY',
   CABLE_TV = 'CABLE_TV',
   MOBILE_DATA = 'MOBILE_DATA',
+  WATER = 'WATER',
+  INTERNET = 'INTERNET',
 }
 
 export type BillDocument = HydratedDocument<Bill>;

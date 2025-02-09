@@ -1,9 +1,39 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { IsEnum, IsString } from 'class-validator';
-import { CreateTopUpDto } from '../topup/dto/create-topup.dto';
+import { IsEnum, IsObject, IsString } from 'class-validator';
 import { BillType } from '../entities/bill.entity';
 
-export class CreateBillDto extends PartialType(CreateTopUpDto) {
+export class CreateBillDto {
+  @IsString()
+  amount: string;
+
+  @IsString()
+  amountId?: number;
+
+  @IsObject()
+  additionalInfo?: {
+    invoiceId?: string;
+  };
+
+  @IsString()
+  provider: string;
+
+  @IsString()
+  token: string;
+
+  @IsString()
+  providerName: string;
+
+  @IsString()
+  logoUrl?: string;
+
+  @IsString()
+  phoneNumber?: string;
+
+  @IsString()
+  accountNumber?: string;
+
+  @IsString()
+  isoCode: string;
+
   @IsString()
   userId: string;
 
@@ -13,4 +43,3 @@ export class CreateBillDto extends PartialType(CreateTopUpDto) {
   @IsString()
   currencySymbol: string;
 }
-

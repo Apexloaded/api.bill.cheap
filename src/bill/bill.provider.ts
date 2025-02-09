@@ -1,24 +1,12 @@
-import { AudienceType, reloadlyPath } from '@/enums/reloadly.enum';
 import { ReloadlyService } from '@/reloadly/reloadly.service';
 import { Injectable } from '@nestjs/common';
-import {
-  PaginatedProviderList,
-  Provider,
-  SelectProvider,
-} from './types/provider.type';
 import { CreateBillDto } from './dto/create-bill.dto';
-import {
-  generateId,
-  generateUniqueRandomArray,
-  getPercentage,
-  to0xString,
-} from '@/utils/helpers';
+import { generateId, getPercentage, to0xString } from '@/utils/helpers';
 import { BillService } from './bill.service';
 import { User } from '@/user/entities/user.entity';
 import { Bill, BillType } from './entities/bill.entity';
 import { TopUpService } from './topup/topup.service';
 import { ExchangeService } from '@/exchange/exchange.service';
-import { TopUp } from './topup/entities/topup.entity';
 import { TransactionService } from '@/transaction/transaction.service';
 import {
   PaymentMethods,
@@ -28,138 +16,28 @@ import { toHex } from 'viem';
 import { ContractBillType, ContractTxType } from '@/enums/contract.enum';
 import { TokenService } from '@/network/token/token.service';
 import { InitBill } from './types/init-bill.type';
+import { UtilityService } from './utility/utility.service';
 
 @Injectable()
 export class BillProvider {
   private desc = {
     [BillType.AIRTIME]: 'Airtime Topup',
     [BillType.MOBILE_DATA]: 'Mobile Data',
+    [BillType.ELECTRICITY]: 'Electricity',
+    [BillType.CABLE_TV]: 'Cable TV',
+    [BillType.WATER]: 'Water',
+    [BillType.INTERNET]: 'Internet',
   };
 
   constructor(
     private readonly reloadly: ReloadlyService,
     private billService: BillService,
     private topUpService: TopUpService,
+    private utilityService: UtilityService,
     private exchangeService: ExchangeService,
     private txService: TransactionService,
     private tokenService: TokenService,
   ) {}
-
-  async autoDetectProvider(phone: string, iso: string) {
-    if (!phone || !iso) {
-      throw new Error('Phone and ISO are required parameters.');
-    }
-
-    const url = this.reloadly.getUrl(
-      AudienceType.Airtime,
-      reloadlyPath.autoDetectProvider(phone, iso),
-    );
-    const options = {
-      suggestedAmountsMap: true,
-      suggestedAmounts: true,
-      includePin: true,
-    };
-
-    const queryParams = new URLSearchParams(
-      options as unknown as Record<string, string>,
-    ).toString();
-    const urlWithISO = `${url}?${queryParams}`;
-    const operator = await this.reloadly.getApi<Provider>(
-      urlWithISO,
-      AudienceType.Airtime,
-    );
-
-    if (iso == 'NG' && operator.suggestedAmounts.length > 0) {
-      const { suggestedAmounts, ...rest } = operator;
-      return {
-        ...rest,
-        suggestedAmounts: this.suggestedAmounts(),
-      };
-    }
-
-    return operator;
-  }
-
-  async listProvidersByISO(
-    iso: string,
-    suggestedAmountsMap: boolean,
-    suggestedAmounts: boolean,
-    includePin: boolean,
-    dataOnly: boolean,
-    includeData: boolean,
-  ) {
-    const url = this.reloadly.getUrl(
-      AudienceType.Airtime,
-      reloadlyPath.countryOperators(iso),
-    );
-
-    let mappedOptions = Object.fromEntries(
-      Object.entries({
-        suggestedAmountsMap,
-        suggestedAmounts,
-        includePin,
-        dataOnly,
-        includeData,
-      }),
-    );
-
-    const queryParams = new URLSearchParams(
-      mappedOptions as unknown as Record<string, string>,
-    ).toString();
-    const urlWithISO = `${url}?${queryParams}`;
-
-    const response = await this.reloadly.getApi<Provider[]>(
-      urlWithISO,
-      AudienceType.Airtime,
-      {
-        headers: {
-          Accept: 'application/com.reloadly.topups-v1+json',
-        },
-      },
-    );
-
-    const operators = response.map((op) => {
-      if (
-        op.country.isoName.toLowerCase() === 'ng' &&
-        op.denominationType === 'RANGE'
-      ) {
-        op.suggestedAmounts = generateUniqueRandomArray(
-          op.minAmount,
-          op.maxAmount,
-          8,
-        );
-      }
-      return op;
-    });
-
-    return operators;
-  }
-
-  async listAllTopupProviders() {
-    const url = this.reloadly.getUrl(
-      AudienceType.Airtime,
-      reloadlyPath.operators,
-    );
-    const options = {
-      suggestedAmountsMap: true,
-      suggestedAmounts: true,
-      includePin: true,
-      includeBundles: true,
-      includeData: true,
-      includeCombo: true,
-      size: 1000,
-    };
-
-    const queryParams = new URLSearchParams(
-      options as unknown as Record<string, string>,
-    ).toString();
-    const urlWithISO = `${url}?${queryParams}`;
-    const operators = await this.reloadly.getApi<PaginatedProviderList>(
-      urlWithISO,
-      AudienceType.Airtime,
-    );
-    return operators;
-  }
 
   async generateBillTransaction(payload: CreateBillDto): Promise<InitBill> {
     try {
@@ -169,9 +47,6 @@ export class BillProvider {
         amount,
         providerName,
         provider,
-        logoUrl,
-        isoCode,
-        phoneNumber,
         token,
         currencySymbol,
       } = payload;
@@ -204,24 +79,11 @@ export class BillProvider {
       };
       const newBill = await this.billService.create(billPayload);
 
-      const topUpPayload = {
-        bill: newBill._id.toString() as unknown as Bill,
-        provider: {
-          name: providerName,
-          providerId: provider,
-          logoUrl: logoUrl,
-        },
-        processedBy: userId as unknown as User,
-        recipient: {
-          countryCode: isoCode,
-          number: phoneNumber,
-        },
-        amount: parseFloat(amount),
-        currency: currencySymbol,
-        reference: customIdentifier,
-      };
-
-      await this.topUpService.create(topUpPayload);
+      await this.determineBill({
+        ...payload,
+        bill: newBill._id.toString(),
+        referenceId: customIdentifier,
+      });
 
       const txPayload = {
         userId: userId,
@@ -279,77 +141,56 @@ export class BillProvider {
     return [500, 1000, 2000, 5000, 10000, 20000];
   }
 
-  selectAirtimeProvider(data: SelectProvider) {
-    console.log('SELECT AIRTIME PROVIDER');
-    const { providers, inputedProviderName, isoCode } = data;
-
-    const selectedProvider = providers.filter(
-      (p) =>
-        p.data === false &&
-        p.bundle === false &&
-        (p.pin
-          ? p.denominationType === 'FIXED'
-          : p.denominationType === 'RANGE') &&
-        p.country.isoName.toLowerCase() === isoCode.toLowerCase() &&
-        p.name
-          .toLowerCase()
-          .includes(inputedProviderName.split(' ')[0].toLowerCase()),
-    );
-    console.log(`Found ${selectedProvider.length} matching provider(s)`);
-
-    // If no providers were found, return all airtime providers for the country
-    if (selectedProvider.length === 0) {
-      console.log(
-        'No specific provider found. Returning all airtime providers for the country.',
-      );
-      return {
-        selectedProvider: providers.filter(
-          (provider) =>
-            provider.bundle === false &&
-            provider.data === false &&
-            (provider.pin
-              ? provider.denominationType === 'FIXED'
-              : provider.denominationType === 'RANGE') &&
-            isoCode &&
-            provider.country.isoName.toLowerCase() === isoCode.toLowerCase(),
-        ),
+  private async determineBill(
+    payload: CreateBillDto & { bill: string; referenceId: string },
+  ) {
+    if ([BillType.AIRTIME, BillType.MOBILE_DATA].includes(payload.billType)) {
+      const topUpPayload = {
+        bill: payload.bill as unknown as Bill,
+        provider: {
+          name: payload.providerName,
+          providerId: payload.provider,
+          logoUrl: payload.logoUrl,
+        },
+        processedBy: payload.userId as unknown as User,
+        recipient: {
+          countryCode: payload.isoCode,
+          number: payload.phoneNumber,
+        },
+        amount: parseFloat(payload.amount),
+        currency: payload.currencySymbol,
+        reference: payload.referenceId,
       };
+      await this.topUpService.create(topUpPayload);
     }
 
-    return { selectedProvider };
-  }
-
-  selectMobileDataProvider(data: SelectProvider) {
-    console.log('SELECT MOBILE DATA PROVIDER');
-    const { providers, inputedProviderName, isoCode } = data;
-
-    const selectedProvider = providers.filter(
-      (p) =>
-        p.data === true &&
-        p.denominationType === 'FIXED' &&
-        p.country.isoName.toLowerCase() === isoCode.toLowerCase() &&
-        p.name
-          .toLowerCase()
-          .includes(inputedProviderName.split(' ')[0].toLowerCase()),
-    );
-    console.log(`Found ${selectedProvider.length} matching provider(s)`);
-
-    // If no providers were found, return all data providers for the country
-    if (selectedProvider.length === 0) {
-      console.log(
-        'No specific provider found. Returning all data providers for the country.',
-      );
-      return {
-        selectedProvider: providers.filter(
-          (provider) =>
-            provider.denominationType === 'FIXED' &&
-            provider.data === true &&
-            isoCode &&
-            provider.country.isoName.toLowerCase() === isoCode.toLowerCase(),
-        ),
+    if (
+      [
+        BillType.CABLE_TV,
+        BillType.ELECTRICITY,
+        BillType.INTERNET,
+        BillType.WATER,
+      ].includes(payload.billType)
+    ) {
+      const utilityPayload = {
+        amountId: payload.amountId,
+        additionalInfo: payload.additionalInfo,
+        bill: payload.bill as unknown as Bill,
+        provider: {
+          name: payload.providerName,
+          providerId: payload.provider,
+          logoUrl: payload.logoUrl,
+        },
+        processedBy: payload.userId as unknown as User,
+        recipient: {
+          countryCode: payload.isoCode,
+          accountNumber: payload.accountNumber,
+        },
+        amount: parseFloat(payload.amount),
+        currency: payload.currencySymbol,
+        reference: payload.referenceId,
       };
+      await this.utilityService.create(utilityPayload);
     }
-
-    return { selectedProvider };
   }
 }
