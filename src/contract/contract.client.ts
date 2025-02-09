@@ -31,4 +31,6 @@ export class ContractClient {
       transport: http(this.rpcUrl),
     }).extend(publicActions);
   }
+
+  
 }

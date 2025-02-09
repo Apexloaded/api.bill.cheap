@@ -19,5 +19,3 @@ export const processUtilityModifer = `
     - isLocal: true if isoCode === 'NG', else false.
     - isForeignTx: true if isoCode !== 'NG', else false.
 `;
-
-
