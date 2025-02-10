@@ -369,6 +369,13 @@ export class BotUpdate {
         parse_mode: 'Markdown',
       },
     );
+    delete ctx.session.recipient;
+    delete ctx.session.provider;
+    delete ctx.session.for;
+    delete ctx.session.amount;
+    delete ctx.session.step;
+    delete ctx.session.provider;
+    delete ctx.session.serviceName;
   }
 
   @On('text')
@@ -377,7 +384,6 @@ export class BotUpdate {
       if ('text' in ctx.message && 'from' in ctx.message) {
         const text = ctx.message.text;
         const step = ctx.session.step;
-        console.log(ctx.session);
         switch (step) {
           case 'set_phone': {
             return await this.botCommand.handleSetPhone(ctx);
@@ -393,14 +399,6 @@ export class BotUpdate {
             }
             ctx.session.amount = text;
             await this.botReplies.getBalanceButtons(ctx);
-            // delete ctx.session.recipient;
-            // delete ctx.session.provider;
-            // delete ctx.session.for;
-            // delete ctx.session.step;
-            // delete ctx.session.provider;
-            // await ctx.reply(res, {
-            //   parse_mode: 'Markdown',
-            // });
             break;
           }
           case 'cable_iuc':
