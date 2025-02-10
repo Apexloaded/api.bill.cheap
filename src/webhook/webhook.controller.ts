@@ -12,7 +12,7 @@ export class WebhookController {
     private readonly webhookService: WebhookService,
   ) {}
 
-  @Post('/tg/billcheap_bot')
+  @Post('/tg/bot')
   async handleTelegramBot(
     @Req() req: Request,
     @Res() res: Response,

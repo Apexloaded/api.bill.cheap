@@ -19,7 +19,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const billcheap_bot = app.get(getBotToken(BOT_NAME));
 
-  app.use(billcheap_bot.webhookCallback('/webhook/tg/billcheap_bot'));
+  app.use(billcheap_bot.webhookCallback('/webhook/tg/bot'));
   app.useGlobalPipes(new ValidationPipe());
   await app.listen(3000);
 }
