@@ -1,7 +1,11 @@
+import { UserService } from '@/user/user.service';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Context, Markup } from 'telegraf';
 import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
+import { IContext } from './bot.update';
+import { BillProvider } from '@/bill/bill.provider';
+import { formatCurrency } from '@/utils/helpers';
 
 @Injectable()
 export class BotReplies {
@@ -10,7 +14,11 @@ export class BotReplies {
   private channelUrl: string;
   private bot: string;
 
-  constructor(private readonly config: ConfigService) {
+  constructor(
+    private readonly config: ConfigService,
+    private userService: UserService,
+    private billProvider: BillProvider,
+  ) {
     this.appUrl = this.config.get<string>('tg.appUrl');
     this.communityUrl = this.config.get<string>('tg.community');
     this.channelUrl = this.config.get<string>('tg.channel');
@@ -36,17 +44,55 @@ export class BotReplies {
     ]);
   }
 
-  getAirtimeButtons() {
-    return [
-      [
-        Markup.button.callback('MTN', 'provider:mtn:airtime'),
-        Markup.button.callback('Airtel', 'provider:airtel:airtime'),
-      ],
-      [
-        Markup.button.callback('Glo', 'provider:glo:airtime'),
-        Markup.button.callback('9mobile', 'provider:9mobile:airtime'),
-      ],
-    ];
+  async getAirtimeButtons(
+    selectedFor?: string,
+    service?: string,
+    ctx?: IContext,
+  ) {
+    let button;
+    let message: string;
+
+    if (!selectedFor && !service && !ctx) {
+      button = [
+        [
+          Markup.button.callback('SELF', 'for:self:airtime'),
+          Markup.button.callback('OTHERS', 'for:others:airtime'),
+        ],
+      ];
+      message = 'Who would you like to topup airtime for?';
+    } else if (selectedFor && service && ctx) {
+      if (selectedFor.toLowerCase() === 'self') {
+        const user = await this.userService.findOne({
+          telegramId: ctx.from.id,
+        });
+        if (!user.phone) {
+          message = `
+          Kindly set your phone number by replying in this format: +23481xxxxxxxx MTN
+        `;
+          ctx.session.step = 'set_phone';
+        } else {
+          message = `
+          How much airtime ${user.phoneOperator.toUpperCase()} should I send to ${user.phone}?
+        `;
+          ctx.session.recipient = user.phone;
+          ctx.session.provider = user.phoneOperator;
+          ctx.session.step = 'airtime_amount';
+        }
+      }
+      if (selectedFor.toLowerCase() === 'others') {
+        message = `
+          Who should I send airtime to and how much? Please reply with their phone number in this format:\n
+          +23481xxxxxxxx MTN 5000
+        `;
+        ctx.session.step = 'airtime_amount';
+      }
+      ctx.session.for = selectedFor;
+    }
+
+    return {
+      button,
+      message,
+    };
   }
 
   getMobileDataButtons() {
@@ -84,6 +130,41 @@ export class BotReplies {
       [Markup.button.callback('NairaBet', 'provider:nairabet:betting')],
       [Markup.button.callback('BetKing', 'provider:betking:betting')],
     ];
+  }
+
+  async getBalanceButtons(ctx: Context) {
+    const user = await this.userService.findOne({ telegramId: ctx.from.id });
+    const paymentTokens = await this.billProvider.listPaymentTokens(
+      user.wallet,
+    );
+    const payOptions = paymentTokens.reduce((acc, token, index) => {
+      const button = Markup.button.callback(
+        `${token.symbol} $${formatCurrency(token.balanceInUsd)}`,
+        `pay:${token.address}`,
+      );
+
+      if (index % 2 === 0) {
+        acc.push([button]); // Start a new pair
+      } else {
+        acc[acc.length - 1].push(button); // Add to the last pair
+      }
+      return acc;
+    }, []);
+
+    const text = `Select your preferred payment method to complete your transaction`;
+    const options: Markup.Markup<InlineKeyboardMarkup> = Markup.inlineKeyboard([
+      ...payOptions,
+    ]);
+    const imageUrl =
+      'https://res.cloudinary.com/dztbnrl7z/image/upload/v1735886323/s4jlwta4r2fbtfaiwxvm.png';
+    await ctx.replyWithPhoto(
+      { url: imageUrl },
+      {
+        caption: text,
+        parse_mode: 'Markdown',
+        ...options,
+      },
+    );
   }
 
   getGiftCardButtons() {

@@ -32,4 +32,8 @@ export class UserService {
       { upsert: true, new: true },
     );
   }
+
+  update(filter: FilterQuery<User>, payload: Partial<User>) {
+    return this.userModel.findOneAndUpdate(filter, payload);
+  }
 }

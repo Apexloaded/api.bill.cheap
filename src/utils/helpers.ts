@@ -52,6 +52,33 @@ export function generateUniqueRandomArray(
   return Array.from(randomSet).sort((a, b) => a - b);
 }
 
+export function formatCurrency(
+  value: string | number,
+  decimal: boolean = true,
+  fixedTo: number = 2,
+) {
+  if (value === '' || value === '.') return value;
+
+  const cur = Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'NGN',
+    maximumSignificantDigits: 10,
+    currencySign: 'accounting',
+  });
+
+  const [integerPart, decimalPart] = decimal
+    ? parseFloat(`${value}`).toFixed(fixedTo).split('.')
+    : value.toString().split('.');
+  const formattedIntegerPart = cur.format(parseFloat(integerPart));
+
+  const amount =
+    decimalPart !== undefined
+      ? `${formattedIntegerPart}.${decimalPart}`
+      : formattedIntegerPart;
+
+  return amount.toString().replace(/(NGN|\s)/g, '');
+}
+
 export function stringify(data: any) {
   return JSON.stringify(data, null, 2);
 }

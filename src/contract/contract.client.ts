@@ -3,11 +3,15 @@ import { ConfigService } from '@nestjs/config';
 import {
   createPublicClient,
   createWalletClient,
+  HDAccount,
   http,
-  PrivateKeyAccount,
   publicActions,
 } from 'viem';
 import { baseSepolia } from 'viem/chains';
+import {
+  createBundlerClient,
+  toCoinbaseSmartAccount,
+} from 'viem/account-abstraction';
 
 @Injectable()
 export class ContractClient {
@@ -32,5 +36,23 @@ export class ContractClient {
     }).extend(publicActions);
   }
 
-  
+  bundlerClient(account: HDAccount) {
+    return createBundlerClient({
+      account,
+      //@ts-ignore
+      client: this.getPublicClient(),
+      transport: http(this.rpcUrl),
+      chain: baseSepolia,
+    });
+  }
+
+  async smartAccount(owner: HDAccount) {
+    const account = await toCoinbaseSmartAccount({
+      //@ts-ignore
+      client: this.client.getPublicClient(),
+      owners: [owner],
+    });
+    return account;
+  }
 }
+

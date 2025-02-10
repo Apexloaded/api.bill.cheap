@@ -1,0 +1,73 @@
+name: Deploy App
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10
+
+      - name: Cache pnpm modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.HOST_SERVER }} >> ~/.ssh/known_hosts
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build and zip app
+        run: |
+          pnpm run build
+          tar -czf app.tar.gz dist package.json pnpm-lock.yaml
+
+      - name: Upload artifact to server
+        run: |
+          scp app.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.HOST_SERVER }}:${{ secrets.DEPLOY_PATH }}
+
+      - name: Deploy on server
+        env:
+          API_BILL_CHEAP: ${{ secrets.API_BILL_CHEAP }}
+        run: |
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.HOST_SERVER }} "
+            set -e
+            cd ${{ secrets.DEPLOY_PATH }}
+            pm2 stop $API_BILL_CHEAP || true
+            rm -rf dist_backup
+            mv dist dist_backup || true
+            tar -xzf app.tar.gz
+            pnpm install --prod
+            pm2 restart $API_BILL_CHEAP
+            rm -rf app.tar.gz
+          "
+
+      - name: Verify Deployment
+        env:
+          API_BILL_CHEAP: ${{ secrets.API_BILL_CHEAP }}
+        run: |
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.HOST_SERVER }} "
+            pm2 list | grep $API_BILL_CHEAP
+          "

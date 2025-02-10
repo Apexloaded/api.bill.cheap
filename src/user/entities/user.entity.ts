@@ -32,6 +32,9 @@ export class User {
   @Prop()
   phone: string;
 
+  @Prop()
+  phoneOperator: string;
+
   @Prop({ lowercase: true })
   email: string;
 
