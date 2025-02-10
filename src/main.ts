@@ -21,6 +21,6 @@ async function bootstrap() {
 
   app.use(billcheap_bot.webhookCallback('/webhook/tg/bot'));
   app.useGlobalPipes(new ValidationPipe());
-  await app.listen(3000);
+  await app.listen(3100);
 }
 bootstrap();
