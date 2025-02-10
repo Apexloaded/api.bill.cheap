@@ -77,7 +77,7 @@ import nillionConfig from './config/nillion.config';
         launchOptions: {
           webhook: {
             domain: configService.get<string>('app.hostname'),
-            path: '/tg/webhook/billcheap_bot',
+            path: '/webhook/tg/billcheap_bot',
           },
         },
       }),
