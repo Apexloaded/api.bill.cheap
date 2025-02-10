@@ -9,13 +9,13 @@ import { BOT_NAME } from '@/config/tg.config';
   controllers: [WebhookController],
   providers: [
     WebhookService,
-    {
-      provide: WebhookController,
-      useFactory: (bot: Telegraf<Context>, webhookService: WebhookService) => {
-        return new WebhookController(bot, webhookService);
-      },
-      inject: [getBotToken(BOT_NAME), WebhookService],
-    },
+    // {
+    //   provide: WebhookController,
+    //   useFactory: (bot: Telegraf<Context>, webhookService: WebhookService) => {
+    //     return new WebhookController(bot, webhookService);
+    //   },
+    //   inject: [getBotToken(BOT_NAME), WebhookService],
+    // },
   ],
 })
 export class WebhookModule {}

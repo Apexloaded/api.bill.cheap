@@ -12,13 +12,12 @@ export class WebhookController {
     private readonly webhookService: WebhookService,
   ) {}
 
-  @Post('/bot')
+  @Post('/tg/billcheap_bot')
   async handleTelegramBot(
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    console.log(req);
     await this.bot.handleUpdate(req.body);
-    return res.status(res.statusCode);
+    res.status(res.statusCode).send()
   }
 }
