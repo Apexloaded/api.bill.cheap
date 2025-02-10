@@ -74,13 +74,12 @@ import nillionConfig from './config/nillion.config';
         token: configService.get('tg.botToken'),
         middlewares: [session()],
         include: [BotModule],
-        launchOptions: false,
-        // launchOptions: {
-        //   webhook: {
-        //     domain: configService.get<string>('app.hostname'),
-        //     path: '/webhook/tg/bot',
-        //   },
-        // },
+        launchOptions: {
+          webhook: {
+            domain: configService.get<string>('app.hostname'),
+            path: '/webhook/tg/bot',
+          },
+        },
       }),
       inject: [ConfigService],
     }),
