@@ -8,3 +8,5 @@ export default registerAs('tg', () => ({
   appUrl: process.env.TG_MINI_APP_URL,
   banner: process.env.TG_BOT_BANNER,
 }));
+
+export const BOT_NAME = 'billcheap_bot';

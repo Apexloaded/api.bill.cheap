@@ -20,7 +20,7 @@ import { AuthModule } from './auth/auth.module';
 import appConfig from './config/app.config';
 import cdpConfig from './config/cdp.config';
 import openaiConfig from './config/openai.config';
-import tgConfig from './config/tg.config';
+import tgConfig, { BOT_NAME } from './config/tg.config';
 
 import { APP_GUARD } from '@nestjs/core';
 import { TelegramThrottlerGuard } from './guards/telegram.throttler.guard';
@@ -69,16 +69,17 @@ import nillionConfig from './config/nillion.config';
     }),
     TelegrafModule.forRootAsync({
       imports: [ConfigModule],
+      botName: BOT_NAME,
       useFactory: async (configService: ConfigService) => ({
         token: configService.get('tg.botToken'),
         middlewares: [session()],
         include: [BotModule],
-        // launchOptions: {
-        //   webhook: {
-        //     domain: configService.get<string>('app.hostname'),
-        //     path: '/webhook/bot',
-        //   },
-        // },
+        launchOptions: {
+          webhook: {
+            domain: configService.get<string>('app.hostname'),
+            path: '/webhook/bot',
+          },
+        },
       }),
       inject: [ConfigService],
     }),
