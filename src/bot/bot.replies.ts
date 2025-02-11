@@ -132,8 +132,18 @@ export class BotReplies {
     ];
   }
 
-  async getBalanceButtons(ctx: Context) {
+  async getBalanceButtons(ctx: IContext) {
+    await ctx.telegram.editMessageCaption(
+      ctx.chat.id,
+      ctx.session.messageId,
+      null,
+      'Fetching Balance...',
+      {
+        parse_mode: 'Markdown',
+      },
+    );
     const user = await this.userService.findOne({ telegramId: ctx.from.id });
+    await ctx.sendChatAction('typing');
     const paymentTokens = await this.billProvider.listPaymentTokens(
       user.wallet,
     );
@@ -155,12 +165,12 @@ export class BotReplies {
     const options: Markup.Markup<InlineKeyboardMarkup> = Markup.inlineKeyboard([
       ...payOptions,
     ]);
-    const imageUrl =
-      'https://res.cloudinary.com/dztbnrl7z/image/upload/v1735886323/s4jlwta4r2fbtfaiwxvm.png';
-    await ctx.replyWithPhoto(
-      { url: imageUrl },
+    await ctx.telegram.editMessageCaption(
+      ctx.chat.id,
+      ctx.session.messageId,
+      null,
+      text,
       {
-        caption: text,
         parse_mode: 'Markdown',
         ...options,
       },

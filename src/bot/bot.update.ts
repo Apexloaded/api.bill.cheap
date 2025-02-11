@@ -41,6 +41,7 @@ interface SessionData {
   text?: string;
   meterNumber?: string;
   userId?: string;
+  messageId?: number;
 }
 
 export interface IContext extends Context {
@@ -60,7 +61,7 @@ export class BotUpdate {
   ) {}
 
   @Start()
-  async start(@Ctx() ctx: Context) {
+  async start(@Ctx() ctx: IContext) {
     try {
       const user = await this.botService.handleAuthentication(ctx);
       const keyboard = this.botReplies.welcomeKeyboard;
@@ -69,10 +70,12 @@ export class BotUpdate {
         user.referralCode,
       );
       const imageUrl = this.config.get('tg.banner');
-      await ctx.replyWithPhoto(
+      const msg = await ctx.replyWithPhoto(
         { url: imageUrl },
         { caption: text, parse_mode: 'Markdown', ...keyboard },
       );
+      ctx.session.messageId = msg.message_id;
+      await ctx.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
     } catch (error) {}
   }
 
@@ -341,19 +344,26 @@ export class BotUpdate {
 
   @Action(/^pay:/)
   async initializePayment(@Ctx() ctx: IContext) {
-    const callbackQuery = ctx.callbackQuery as unknown as {
-      data: string;
-    };
-    const [, tokenAddress] = callbackQuery.data.split(':');
-    await ctx.editMessageCaption('Processing Request...', {
-      parse_mode: 'Markdown',
-    });
+    let typingInterval: NodeJS.Timer;
 
-    const recipient = ctx.session.recipient;
-    const provider = ctx.session.provider;
-    const amount = ctx.session.amount;
-    const serviceName = ctx.session.serviceName;
-    const aiInput = `
+    try {
+      const callbackQuery = ctx.callbackQuery as unknown as {
+        data: string;
+      };
+      await ctx.telegram.editMessageCaption(
+        ctx.chat.id,
+        ctx.session.messageId,
+        null,
+        'Processing Request...',
+      );
+      const [, tokenAddress] = callbackQuery.data.split(':');
+
+      const recipient = ctx.session.recipient;
+      const provider = ctx.session.provider;
+      const amount = ctx.session.amount;
+      const serviceName = ctx.session.serviceName;
+
+      const aiInput = `
       Process ${serviceName}:\n
       Phone: ${recipient}\n
       Amount: ${amount}\n
@@ -361,25 +371,48 @@ export class BotUpdate {
       Token Address: ${tokenAddress}
     `;
 
-    const response = await this.botService.handleAgentInput(ctx, aiInput);
-    await ctx.editMessageCaption(
-      response ??
-        "I didn't understand that. Please use the menu options or type /start to begin.",
-      {
-        parse_mode: 'Markdown',
-      },
-    );
-    delete ctx.session.recipient;
-    delete ctx.session.provider;
-    delete ctx.session.for;
-    delete ctx.session.amount;
-    delete ctx.session.step;
-    delete ctx.session.provider;
-    delete ctx.session.serviceName;
+      await ctx.sendChatAction('typing');
+      typingInterval = setInterval(async () => {
+        try {
+          await ctx.sendChatAction('typing');
+        } catch (error) {
+          console.error('Error sending typing action:', error);
+        }
+      }, 4000);
+
+      const response = await this.botService.handleAgentInput(ctx, aiInput);
+      clearInterval(typingInterval as unknown as number);
+
+      await ctx.telegram.editMessageCaption(
+        ctx.chat.id,
+        ctx.session.messageId,
+        null,
+        response,
+        {
+          parse_mode: 'Markdown',
+        },
+      );
+
+      this.botService.clearSessionData(ctx);
+    } catch (error) {
+      if (typingInterval) {
+        clearInterval(typingInterval as unknown as number);
+      }
+
+      // Handle error appropriately
+      console.error('Payment initialization error:', error);
+      await ctx.telegram.editMessageCaption(
+        ctx.chat.id,
+        ctx.session.messageId,
+        null,
+        'An error occurred while processing your request. Please try again.',
+      );
+    }
   }
 
   @On('text')
   async handleTextInput(@Ctx() ctx: IContext) {
+    let typingInterval: NodeJS.Timer;
     try {
       if ('text' in ctx.message && 'from' in ctx.message) {
         const text = ctx.message.text;
@@ -398,6 +431,10 @@ export class BotUpdate {
               return;
             }
             ctx.session.amount = text;
+            await ctx.telegram.deleteMessage(
+              ctx.chat.id,
+              ctx.message.message_id,
+            );
             await this.botReplies.getBalanceButtons(ctx);
             break;
           }
@@ -461,13 +498,26 @@ export class BotUpdate {
             delete ctx.session.amount;
             break;
           default:
+            const processingId = await ctx.reply(`Billy processing 💭`, {
+              parse_mode: 'Markdown',
+            });
+            await ctx.sendChatAction('typing');
+            typingInterval = setInterval(async () => {
+              try {
+                await ctx.sendChatAction('typing');
+              } catch (error) {
+                console.error('Error sending typing action:', error);
+              }
+            }, 5000);
             const res = await this.botService.handleAgentInput(ctx, text);
-            await ctx.reply(
+            clearInterval(typingInterval as unknown as number);
+            await ctx.telegram.editMessageText(
+              ctx.chat.id,
+              processingId.message_id,
+              null,
               res ??
                 "I didn't understand that. Please use the menu options or type /start to begin.",
-              {
-                parse_mode: 'Markdown',
-              },
+              { parse_mode: 'Markdown' },
             );
         }
       }

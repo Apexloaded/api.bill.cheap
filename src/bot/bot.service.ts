@@ -7,6 +7,7 @@ import { WalletService } from '@/wallet/wallet.service';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Context } from 'telegraf';
+import { IContext } from './bot.update';
 
 @Injectable()
 export class BotService {
@@ -68,7 +69,21 @@ export class BotService {
     return response;
   }
 
-  async processAirtime() {
-    
+  async processAirtime() {}
+
+  clearSessionData(ctx: IContext): void {
+    const sessionKeys = [
+      'recipient',
+      'provider',
+      'for',
+      'amount',
+      'step',
+      'serviceName',
+      'messageId',
+    ];
+
+    sessionKeys.forEach((key) => {
+      delete ctx.session[key];
+    });
   }
 }

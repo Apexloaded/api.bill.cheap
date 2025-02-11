@@ -127,20 +127,28 @@ export class AgentKitService {
   }
 
   async prompt(data: AgentPrompt) {
-    let { prompt, thread_id, user_id } = data;
-    const agent = await this.getUserAgent(user_id);
+    try {
+      let { prompt, thread_id, user_id } = data;
 
-    const stream = await agent.stream(
-      { messages: [new HumanMessage(prompt)] },
-      { configurable: { thread_id } },
-    );
+      const agent = await this.getUserAgent(user_id);
 
-    let output = '';
-    for await (const chunk of stream) {
-      if ('agent' in chunk) {
-        output += chunk.agent.messages[0].content + '\n';
+      console.log(prompt);
+
+      const stream = await agent.stream(
+        { messages: [new HumanMessage(prompt)] },
+        { configurable: { thread_id } },
+      );
+
+      let output = '';
+      for await (const chunk of stream) {
+        if ('agent' in chunk) {
+          output += chunk.agent.messages[0].content + '\n';
+        }
       }
+      return output;
+    } catch (error) {
+      console.error('Error in prompt:', error);
+      throw error;
     }
-    return output;
   }
 }
